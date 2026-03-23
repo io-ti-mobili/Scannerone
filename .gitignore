@@ -1,0 +1,62 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.generated
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+build/
+app/build/
+
+# Gradle files
+.gradle/
+local.properties
+gradlew.bat
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (usually should not be committed)
+google-services.json
+
+# IntelliJ Project files
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Android Studio Navigation editor temp files
+.navigation/
+
+# Android Studio captures folder
+captures/
+
+# External native build folder
+.externalNativeBuild/
+.cxx/
+
+# NDK
+obj/
+
+# Kotlin
+.kotlin/
+.kotlin_module
+
+# VS Code
+.vscode/
+
+# Mac / Windows / Linux OS Files
+.DS_Store
+Thumbs.db
+*~
+*.swp
