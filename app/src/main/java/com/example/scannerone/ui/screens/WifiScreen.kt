@@ -1,0 +1,182 @@
+package com.example.scannerone.ui.screens
+
+import android.content.Context
+import android.net.wifi.ScanResult
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.example.scannerone.Services.ScanService.WifiScanServiceImpl
+import com.example.scannerone.permissions.rememberWifiPermissionState
+import kotlinx.coroutines.launch
+
+@Composable
+fun WifiScreen(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var scanResults by remember { mutableStateOf<List<ScanResult>>(emptyList()) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isScanning by remember { mutableStateOf(false) }
+
+    val permissionState = rememberWifiPermissionState(
+        onGranted = { Toast.makeText(context, "Permessi concessi", Toast.LENGTH_SHORT).show() },
+        onDenied = { denied ->
+            errorMessage = "Permessi negati: ${denied.joinToString(", ")}"
+        }
+    )
+
+    fun runScan() {
+        if (!permissionState.allGranted) {
+            permissionState.requestPermissions()
+            return
+        }
+        scope.launch {
+            isScanning = true
+            errorMessage = null
+            scanResults = emptyList()
+
+            try {
+                val service = WifiScanServiceImpl(context)
+                val results = service.scan()
+
+                scanResults = results
+
+                // Log
+                Log.d("WifiScreen", "Reti trovate: ${results.size}")
+                results.forEach { r ->
+                    Log.d("WifiScreen", "SSID: ${r.SSID} | BSSID: ${r.BSSID} | Signal: ${r.level} dBm")
+                }
+
+                // Toast
+                val toastMsg = if (results.isEmpty()) "Nessuna rete trovata"
+                else "${results.size} reti trovate"
+                Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show()
+
+            } catch (e: Exception) {
+                val msg = e.message ?: "Errore sconosciuto"
+                errorMessage = msg
+                Log.e("WifiScreen", "Errore durante la scansione: $msg")
+                Toast.makeText(context, "Scansione fallita: $msg", Toast.LENGTH_LONG).show()
+            } finally {
+                isScanning = false
+            }
+        }
+
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (!permissionState.allGranted) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "⚠ Permessi mancanti",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = "Premi il pulsante per concedere i permessi necessari alla scansione.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { permissionState.requestPermissions() }) {
+                        Text("Concedi permessi")
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        Text(
+            text = "Wi-Fi Scanner",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Button(
+            onClick = { runScan() },
+            enabled = !isScanning,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (isScanning) "Scansione in corso..." else "Avvia Scansione")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Errore
+        errorMessage?.let { err ->
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "⚠ $err",
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Risultati
+        if (scanResults.isNotEmpty()) {
+            Text(
+                text = "${scanResults.size} reti trovate",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(bottom = 8.dp)
+            )
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(scanResults) { result ->
+                    WifiResultCard(result)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WifiResultCard(result: ScanResult) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = result.SSID.ifBlank { "(rete nascosta)" },
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "BSSID: ${result.BSSID}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+            Text(
+                text = "Segnale: ${result.level} dBm",
+                style = MaterialTheme.typography.bodySmall,
+                color = when {
+                    result.level >= -60 -> Color(0xFF2E7D32)   // verde: segnale forte
+                    result.level >= -75 -> Color(0xFFF57F17)   // giallo: segnale medio
+                    else                -> Color(0xFFC62828)   // rosso: segnale debole
+                }
+            )
+        }
+    }
+}

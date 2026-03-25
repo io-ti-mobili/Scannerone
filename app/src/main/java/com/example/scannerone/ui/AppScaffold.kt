@@ -30,6 +30,7 @@ import androidx.compose.ui.res.painterResource
 import com.example.scannerone.navigation.AppDestination
 import com.example.scannerone.ui.screens.HomeScreen
 import com.example.scannerone.ui.screens.TestScreen
+import com.example.scannerone.ui.screens.WifiScreen
 import kotlinx.coroutines.launch
 
 /**
@@ -100,6 +101,7 @@ fun AppScaffold() {
             when (currentDestination) {
                 AppDestination.HOME -> HomeScreen(modifier)
                 AppDestination.TEST -> TestScreen(modifier)
+                AppDestination.WIFIsCAN -> WifiScreen(modifier)
             }
         }
     }
