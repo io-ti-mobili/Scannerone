@@ -107,6 +107,16 @@ fun DatabaseScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(text = "SSID: ${net.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                             Text(text = "MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
+                            
+                            if (net.realCity != null) {
+                                val addressStr = if (net.realStreet != null) "${net.realCity}, ${net.realStreet}" else net.realCity
+                                Text(
+                                    text = "📍 $addressStr", 
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween

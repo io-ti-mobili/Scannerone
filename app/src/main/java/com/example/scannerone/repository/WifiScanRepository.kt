@@ -9,6 +9,8 @@ import com.example.scannerone.location.TrilaterationStrategy
 import com.example.scannerone.location.WeightedCentroidStrategy
 import com.example.scannerone.viewmodel.StrategyConfig
 import com.example.scannerone.viewmodel.StrategyType
+import com.example.scannerone.nominatimApi.NominatimClient
+import com.example.scannerone.nominatimApi.toWifiNetworkFields
 
 /**
  * Il Repository funge da "Cervello" tra i Dati grezzi (DAO/Room) e la logica matematica.
@@ -85,21 +87,28 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     }
 
     private suspend fun fetchAndSetNetworkAddress(networkId: Int, lat: Double, lon: Double) {
-        println("ciao")
-        /*
-        // Chiamata fittizia alle API di OpenStreetMap (Nominatim)
-        val osmData = osm.geolocate(lat, lon)
-        
-        // Esempio di mapping dei parametri ritornati (via, città, regione, nazione)
-        // La funzione updateNetworkAddressDetails andrà definita nel DAO
-        dao.updateNetworkAddressDetails(
-            networkId = networkId,
-            realStreet = osmData.road,
-            realCity = osmData.city ?: osmData.village ?: osmData.town,
-            realRegion = osmData.state,
-            realCountry = osmData.country
-        )
-        */
+        try {
+            println("=== DEBUG NOMINATIM ===")
+            println("Richiesta coordinate: Lat: $lat, Lon: $lon")
+            
+            val response = NominatimClient.api.reverseGeocode(lat, lon)
+            println("Risposta Nominatim: $response")
+            
+            val fields = response.toWifiNetworkFields()
+            println("Campi estratti per il Database: $fields")
+            println("=======================")
+            
+            dao.updateNetworkAddressDetails(
+                networkId = networkId,
+                street = fields["realStreet"],
+                city = fields["realCity"],
+                region = fields["realRegion"],
+                country = fields["realCountry"]
+            )
+        } catch (e: Exception) {
+            println("Errore Nominatim: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     suspend fun insertScannedNetwork(

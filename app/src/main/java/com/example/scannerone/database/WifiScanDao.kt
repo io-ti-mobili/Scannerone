@@ -36,4 +36,7 @@ interface WifiScanDao {
 
     @Query("SELECT COUNT(*) FROM wifi_scan_records WHERE networkId = :networkId")
     suspend fun getScanCountForNetwork(networkId: Int): Int
+
+    @Query("UPDATE wifi_networks SET realStreet = :street, realCity = :city, realRegion = :region, realCountry = :country WHERE id = :networkId")
+    suspend fun updateNetworkAddressDetails(networkId: Int, street: String?, city: String?, region: String?, country: String?)
 }
