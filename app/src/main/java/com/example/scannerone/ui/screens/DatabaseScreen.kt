@@ -206,37 +206,6 @@ fun DatabaseScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(networks) { net ->
-<<<<<<< app/src/main/java/com/example/scannerone/ui/screens/DatabaseScreen.kt
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "SSID: ${net.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                            Text(text = "MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
-                            
-                            if (net.realCity != null) {
-                                val addressStr = if (net.realStreet != null) "${net.realCity}, ${net.realStreet}" else net.realCity
-                                Text(
-                                    text = "📍 $addressStr", 
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(text = "Freq: ${net.frequency} MHz")
-                                if (net.realLatitude != null && net.realLongitude != null) {
-                                    val latFmt = String.format(Locale.getDefault(), "%.5f", net.realLatitude)
-                                    val lonFmt = String.format(Locale.getDefault(), "%.5f", net.realLongitude)
-                                    val accFmt = net.estAccuracy?.toInt()?.toString() ?: "?"
-                                    Text(text = "Pos: $latFmt, $lonFmt (±${accFmt}m)")
-                                } else {
-                                    Text(text = "Posizione: In elaborazione...")
-=======
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -244,6 +213,16 @@ fun DatabaseScreen(
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(text = "SSID: ${net.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                                 Text(text = "MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
+                                
+                                if (net.realCity != null) {
+                                    val addressStr = if (net.realStreet != null) "${net.realCity}, ${net.realStreet}" else net.realCity
+                                    Text(
+                                        text = "📍 $addressStr", 
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -257,7 +236,6 @@ fun DatabaseScreen(
                                     } else {
                                         Text(text = "Posizione: In elaborazione...")
                                     }
->>>>>>> tmp_database.kt
                                 }
                             }
                         }
