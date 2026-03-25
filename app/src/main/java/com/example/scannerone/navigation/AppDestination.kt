@@ -12,4 +12,5 @@ enum class AppDestination(
 ) {
     HOME("Home", R.drawable.ic_home),
     TEST("Test", R.drawable.ic_home),
+    MAP("Map", R.drawable.ic_home)
 }
