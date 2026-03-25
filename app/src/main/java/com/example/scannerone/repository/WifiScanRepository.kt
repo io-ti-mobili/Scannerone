@@ -55,6 +55,12 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         }
     }
 
+    suspend fun recalculateNetworks(networkIds: List<Int>) {
+        for (id in networkIds) {
+            recalculateNetwork(id)
+        }
+    }
+
     private suspend fun recalculateNetwork(networkId: Int) {
         val history = dao.getScansForNetwork(networkId)
         
@@ -71,8 +77,29 @@ class WifiScanRepository(private val dao: WifiScanDao) {
                     lon = newPosition.longitude,
                     acc = newPosition.accuracy
                 )
+                
+                // Richiesta a OpenStreetMap per ricavare l'indirizzo reale
+                fetchAndSetNetworkAddress(networkId, newPosition.latitude, newPosition.longitude)
             }
         }
+    }
+
+    private suspend fun fetchAndSetNetworkAddress(networkId: Int, lat: Double, lon: Double) {
+        println("ciao")
+        /*
+        // Chiamata fittizia alle API di OpenStreetMap (Nominatim)
+        val osmData = osm.geolocate(lat, lon)
+        
+        // Esempio di mapping dei parametri ritornati (via, città, regione, nazione)
+        // La funzione updateNetworkAddressDetails andrà definita nel DAO
+        dao.updateNetworkAddressDetails(
+            networkId = networkId,
+            realStreet = osmData.road,
+            realCity = osmData.city ?: osmData.village ?: osmData.town,
+            realRegion = osmData.state,
+            realCountry = osmData.country
+        )
+        */
     }
 
     suspend fun insertScannedNetwork(

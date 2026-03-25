@@ -16,5 +16,9 @@ data class WifiNetwork(
     val frequency: Int,
     val realLatitude: Double? = null,
     val realLongitude: Double? = null,
-    val estAccuracy: Float? = null
+    val estAccuracy: Float? = null,
+    val realStreet: String? = null,
+    val realCity: String? = null,
+    val realRegion: String? = null,
+    val realCountry: String? = null
 )
