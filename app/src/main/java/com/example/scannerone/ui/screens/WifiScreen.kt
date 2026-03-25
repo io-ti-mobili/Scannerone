@@ -33,7 +33,32 @@ fun WifiScreen(modifier: Modifier = Modifier) {
         }
     )
 
+    fun isThrottleEnabled(context: Context): Boolean {
+        // isScanThrottleEnabled e' disponibile solo da API 29 (Android 10)
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+            wifiManager?.isScanThrottleEnabled == true
+        } else {
+            false // Su versioni vecchie non possiamo saperlo con certezza o non esiste l'API pubblica
+        }
+    }
+
+    val showThrottleWarning = remember { isThrottleEnabled(context) }
+
+    fun isLocationEnabled(context: Context): Boolean {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? android.location.LocationManager
+        return locationManager?.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) == true ||
+                locationManager?.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER) == true
+    }
+
     fun runScan() {
+        if (!isLocationEnabled(context)) {
+            Toast.makeText(context, "Per scansionare il Wi-Fi serve la geolocalizzazione attiva.", Toast.LENGTH_LONG).show()
+            val intent = android.content.Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            context.startActivity(intent)
+            return
+        }
+
         permissionState.runWithPermission {
             scope.launch {
                 isScanning = true
@@ -99,6 +124,29 @@ fun WifiScreen(modifier: Modifier = Modifier) {
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
+                if (showThrottleWarning) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Limitazione scansioni attiva (Wi-Fi Throttling)",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        text = "Android limita le scansioni frequenti. Per disabilitarlo:\nOpzioni Sviluppatore > 'Limitazione ricerca reti Wi-Fi' (OFF).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Text(
             text = "Wi-Fi Scanner",
             style = MaterialTheme.typography.headlineMedium,
@@ -113,7 +161,7 @@ fun WifiScreen(modifier: Modifier = Modifier) {
             Text(if (isScanning) "Scansione in corso..." else "Avvia Scansione")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+
 
         // Errore
         errorMessage?.let { err ->
