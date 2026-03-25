@@ -9,11 +9,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.scannerone.viewmodel.WifiScanViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun DatabaseScreen(
     modifier: Modifier = Modifier,
     viewModel: WifiScanViewModel = viewModel()
@@ -22,13 +21,25 @@ fun DatabaseScreen(
     val draftConfig by viewModel.draftConfig.collectAsState()
     val appliedConfig by viewModel.config.collectAsState()
 
+    var searchAddress by remember { mutableStateOf("") }
+    var searchSsid by remember { mutableStateOf("") }
+    var searchBssid by remember { mutableStateOf("") }
+
+    var typeDropdownExpanded by remember { mutableStateOf(false) }
+    val typeOptions = listOf("Tutto", "Reti Wi-Fi", "Bluetooth")
+    var selectedType by remember { mutableStateOf(typeOptions[0]) }
+
+    var secDropdownExpanded by remember { mutableStateOf(false) }
+    val secOptions = listOf("Tutte", "WPA", "WPA1", "WPA2", "WPA3")
+    var selectedSecurity by remember { mutableStateOf(secOptions[0]) }
+
     Scaffold(
         modifier = modifier,
         floatingActionButton = {
             FloatingActionButton(onClick = {
                 val bssidPool = listOf("00:11:22:33:44:55", "AA:BB:CC:DD:EE:FF", "12:34:56:78:90:AB")
                 val mockBssid = bssidPool.random()
-                
+
                 viewModel.insertScannedNetwork(
                     bssid = mockBssid,
                     ssid = "Router_${mockBssid.takeLast(2)}",
@@ -51,41 +62,136 @@ fun DatabaseScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Configurazione Motore Matematico", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                    
+
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         RadioButton(
                             selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.CENTROID,
                             onClick = { viewModel.updateDraftConfig(draftConfig.copy(baseStrategyType = com.example.scannerone.viewmodel.StrategyType.CENTROID)) }
                         )
                         Text("Weighted Centroid", style = MaterialTheme.typography.bodySmall)
-                        
+
                         Spacer(modifier = Modifier.width(8.dp))
-                        
+
                         RadioButton(
                             selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.TRILATERATION,
                             onClick = { viewModel.updateDraftConfig(draftConfig.copy(baseStrategyType = com.example.scannerone.viewmodel.StrategyType.TRILATERATION)) }
                         )
                         Text("Trilateration", style = MaterialTheme.typography.bodySmall)
                     }
-                    
+
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Checkbox(checked = draftConfig.useRansac, onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useRansac = it)) })
                         Text("Applica Filtraggio RANSAC (Scarta Outliers)", style = MaterialTheme.typography.bodySmall)
                     }
-                    
+
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Checkbox(checked = draftConfig.useGpsWeight, onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useGpsWeight = it)) })
                         Text("Aggiungi Peso Precisione GPS", style = MaterialTheme.typography.bodySmall)
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Button(
                         onClick = { viewModel.applyDraftAndRecalculate() },
                         enabled = draftConfig != appliedConfig,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Applica e Ricalcola DB")
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                OutlinedTextField(
+                    value = searchAddress,
+                    onValueChange = { searchAddress = it },
+                    label = { Text("Ricerca Indirizzo/Paese") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = searchSsid,
+                        onValueChange = { searchSsid = it },
+                        label = { Text("SSID") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = searchBssid,
+                        onValueChange = { searchBssid = it },
+                        label = { Text("BSSID") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ExposedDropdownMenuBox(
+                        expanded = typeDropdownExpanded,
+                        onExpandedChange = { typeDropdownExpanded = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = selectedType,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeDropdownExpanded) },
+                            modifier = Modifier.menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = typeDropdownExpanded,
+                            onDismissRequest = { typeDropdownExpanded = false }
+                        ) {
+                            typeOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        selectedType = option
+                                        typeDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    ExposedDropdownMenuBox(
+                        expanded = secDropdownExpanded,
+                        onExpandedChange = { secDropdownExpanded = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = selectedSecurity,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = secDropdownExpanded) },
+                            modifier = Modifier.menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = secDropdownExpanded,
+                            onDismissRequest = { secDropdownExpanded = false }
+                        ) {
+                            secOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        selectedSecurity = option
+                                        secDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item { Button(onClick = { }) { Text("Esporta CSV/KML Attuale") } }
+                    item { Button(onClick = { }) { Text("Esporta DB Completo (CSV)") } }
+                    item { Button(onClick = { }) { Text("Backup Database") } }
+                    item { Button(onClick = { }) { Text("Importa Reti Osservate") } }
+                    item { Button(onClick = { }) { Text("Salva DB in App") } }
+                    item {
+                        Button(
+                            onClick = { },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) { Text("Cancella DB") }
                     }
                 }
             }
@@ -100,6 +206,7 @@ fun DatabaseScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(networks) { net ->
+<<<<<<< app/src/main/java/com/example/scannerone/ui/screens/DatabaseScreen.kt
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -129,13 +236,34 @@ fun DatabaseScreen(
                                     Text(text = "Pos: $latFmt, $lonFmt (±${accFmt}m)")
                                 } else {
                                     Text(text = "Posizione: In elaborazione...")
+=======
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(text = "SSID: ${net.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                                Text(text = "MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = "Freq: ${net.frequency} MHz")
+                                    if (net.realLatitude != null && net.realLongitude != null) {
+                                        val latFmt = String.format(Locale.getDefault(), "%.5f", net.realLatitude)
+                                        val lonFmt = String.format(Locale.getDefault(), "%.5f", net.realLongitude)
+                                        val accFmt = net.estAccuracy?.toInt()?.toString() ?: "?"
+                                        Text(text = "Pos: $latFmt, $lonFmt (±${accFmt}m)")
+                                    } else {
+                                        Text(text = "Posizione: In elaborazione...")
+                                    }
+>>>>>>> tmp_database.kt
                                 }
                             }
                         }
                     }
                 }
             }
-        }
         }
     }
 }
