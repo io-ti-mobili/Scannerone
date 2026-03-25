@@ -1,0 +1,111 @@
+package com.example.scannerone.repository
+
+import com.example.scannerone.database.WifiScanDao
+import com.example.scannerone.entities.WifiNetwork
+import com.example.scannerone.entities.WifiScanRecord
+import com.example.scannerone.location.LocationStrategy
+import com.example.scannerone.location.RansacStrategyWrapper
+import com.example.scannerone.location.TrilaterationStrategy
+import com.example.scannerone.location.WeightedCentroidStrategy
+import com.example.scannerone.viewmodel.StrategyConfig
+import com.example.scannerone.viewmodel.StrategyType
+
+/**
+ * Il Repository funge da "Cervello" tra i Dati grezzi (DAO/Room) e la logica matematica.
+ * Sgrava il ViewModel da compiti elaborativi pesanti rispettando la "Clean Architecture".
+ */
+class WifiScanRepository(private val dao: WifiScanDao) {
+
+    private val scansThresholdForCompute = 5
+    private val maxAcceptedAccuracy = 20.0f
+    private val MIN_RSSI = -85
+    
+    var config = StrategyConfig()
+        set(value) {
+            field = value
+            updateActiveStrategy()
+        }
+
+    private var activeStrategy: LocationStrategy = WeightedCentroidStrategy()
+
+    init {
+        updateActiveStrategy()
+    }
+
+    private fun updateActiveStrategy() {
+        var baseStrategy: LocationStrategy = when (config.baseStrategyType) {
+            StrategyType.CENTROID -> WeightedCentroidStrategy(useGpsWeight = config.useGpsWeight)
+            StrategyType.TRILATERATION -> TrilaterationStrategy(useGpsWeight = config.useGpsWeight)
+        }
+        
+        // Pura magia del Decorator Pattern: Avvolgiamo la strategia se richiesto!
+        if (config.useRansac) {
+            baseStrategy = RansacStrategyWrapper(baseStrategy)
+        }
+        
+        activeStrategy = baseStrategy
+    }
+
+    val networks = dao.getAllNetworks()
+    
+    suspend fun recalculateAllNetworks() {
+        val networkIds = dao.getAllNetworkIds()
+        for (id in networkIds) {
+            recalculateNetwork(id)
+        }
+    }
+
+    private suspend fun recalculateNetwork(networkId: Int) {
+        val history = dao.getScansForNetwork(networkId)
+        
+        val highQualityScans = history.filter {
+            it.scanAccuracy <= maxAcceptedAccuracy && it.rssi >= MIN_RSSI 
+        }
+        
+        if (highQualityScans.isNotEmpty()) {
+            val newPosition = activeStrategy.calculatePosition(highQualityScans)
+            if (newPosition != null) {
+                dao.updateNetworkLocation(
+                    networkId = networkId,
+                    lat = newPosition.latitude,
+                    lon = newPosition.longitude,
+                    acc = newPosition.accuracy
+                )
+            }
+        }
+    }
+
+    suspend fun insertScannedNetwork(
+        bssid: String,
+        ssid: String,
+        capabilities: String,
+        frequency: Int,
+        rssi: Int,
+        lat: Double,
+        lon: Double,
+        accuracy: Float
+    ) {
+        val network = WifiNetwork(bssid = bssid, ssid = ssid, capabilities = capabilities, frequency = frequency)
+        
+        var internalId = dao.insertNetwork(network).toInt()
+        if (internalId == -1) {
+            internalId = dao.getNetworkIdByBssid(bssid) ?: return
+        }
+        
+        val record = WifiScanRecord(
+            networkId = internalId,
+            timestamp = System.currentTimeMillis(),
+            rssi = rssi,
+            scanLatitude = lat,
+            scanLongitude = lon,
+            scanAccuracy = accuracy
+        )
+        dao.insertScanRecord(record)
+        
+        val count = dao.getScanCountForNetwork(internalId)
+        
+        if (count == 1 || (count > 0 && count % scansThresholdForCompute == 0)) {
+            recalculateNetwork(internalId)
+        }
+    }
+}

@@ -4,9 +4,10 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.scannerone.entities.WifiScan
+import com.example.scannerone.entities.WifiNetwork
+import com.example.scannerone.entities.WifiScanRecord
 
-@Database(entities = [WifiScan::class], version = 1, exportSchema = false)
+@Database(entities = [WifiNetwork::class, WifiScanRecord::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun wifiScanDao(): WifiScanDao
 
@@ -21,7 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "scannerone_database"
                 )
-                    .fallbackToDestructiveMigration(false)
+                    .fallbackToDestructiveMigration(true)
                 .build()
                 .also { Instance = it }
             }

@@ -18,57 +18,114 @@ fun DatabaseScreen(
     modifier: Modifier = Modifier,
     viewModel: WifiScanViewModel = viewModel()
 ) {
-    val scansioni by viewModel.scansioni.collectAsState()
+    val networks by viewModel.networks.collectAsState()
+    val draftConfig by viewModel.draftConfig.collectAsState()
+    val appliedConfig by viewModel.config.collectAsState()
 
     Scaffold(
         modifier = modifier,
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                val mockScan = com.example.scannerone.entities.WifiScan(
-                    ssid = "Rete_Finta_${(10..99).random()}",
-                    bssid = "00:11:22:33:44:${(10..99).random()}",
-                    rssi = -(30..90).random(),
-                    frequency = listOf(2412, 5180, 5200).random(),
+                val bssidPool = listOf("00:11:22:33:44:55", "AA:BB:CC:DD:EE:FF", "12:34:56:78:90:AB")
+                val mockBssid = bssidPool.random()
+                
+                viewModel.insertScannedNetwork(
+                    bssid = mockBssid,
+                    ssid = "Router_${mockBssid.takeLast(2)}",
                     capabilities = "[WPA2-PSK-CCMP]",
-                    latitude = 45.4642,
-                    longitude = 9.1900,
-                    timestamp = System.currentTimeMillis()
+                    frequency = 2412,
+                    rssi = -(30..90).random(),
+                    lat = 45.4642 + Math.random() * 0.001,
+                    lon = 9.1900 + Math.random() * 0.001,
+                    accuracy = (5..15).random().toFloat()
                 )
-                viewModel.insertScan(mockScan)
             }) {
                 Text("+ Mock")
             }
         }
     ) { innerPadding ->
-        if (scansioni.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                Text("Nessuna rete nel database... in attesa.")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                items(scansioni) { scan ->
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Configurazione Motore Matematico", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.CENTROID,
+                            onClick = { viewModel.updateDraftConfig(draftConfig.copy(baseStrategyType = com.example.scannerone.viewmodel.StrategyType.CENTROID)) }
+                        )
+                        Text("Weighted Centroid", style = MaterialTheme.typography.bodySmall)
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        RadioButton(
+                            selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.TRILATERATION,
+                            onClick = { viewModel.updateDraftConfig(draftConfig.copy(baseStrategyType = com.example.scannerone.viewmodel.StrategyType.TRILATERATION)) }
+                        )
+                        Text("Trilateration", style = MaterialTheme.typography.bodySmall)
+                    }
+                    
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Checkbox(checked = draftConfig.useRansac, onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useRansac = it)) })
+                        Text("Applica Filtraggio RANSAC (Scarta Outliers)", style = MaterialTheme.typography.bodySmall)
+                    }
+                    
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Checkbox(checked = draftConfig.useGpsWeight, onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useGpsWeight = it)) })
+                        Text("Aggiungi Peso Precisione GPS", style = MaterialTheme.typography.bodySmall)
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Button(
+                        onClick = { viewModel.applyDraftAndRecalculate() },
+                        enabled = draftConfig != appliedConfig,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Applica e Ricalcola DB")
+                    }
+                }
+            }
+
+            if (networks.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    Text("Nessuna rete nel database... in attesa.")
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().weight(1f).padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(networks) { net ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "SSID: ${scan.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                            Text(text = "MAC: ${scan.bssid}", style = MaterialTheme.typography.bodyMedium)
+                            Text(text = "SSID: ${net.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                            Text(text = "MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(text = "Segnale: ${scan.rssi} dBm")
-                                val orario = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(scan.timestamp))
-                                Text(text = "Ore: $orario")
+                                Text(text = "Freq: ${net.frequency} MHz")
+                                if (net.realLatitude != null && net.realLongitude != null) {
+                                    val latFmt = String.format(Locale.getDefault(), "%.5f", net.realLatitude)
+                                    val lonFmt = String.format(Locale.getDefault(), "%.5f", net.realLongitude)
+                                    val accFmt = net.estAccuracy?.toInt()?.toString() ?: "?"
+                                    Text(text = "Pos: $latFmt, $lonFmt (±${accFmt}m)")
+                                } else {
+                                    Text(text = "Posizione: In elaborazione...")
+                                }
                             }
                         }
                     }
                 }
             }
+        }
         }
     }
 }
