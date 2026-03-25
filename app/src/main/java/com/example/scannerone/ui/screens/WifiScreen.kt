@@ -34,42 +34,39 @@ fun WifiScreen(modifier: Modifier = Modifier) {
     )
 
     fun runScan() {
-        if (!permissionState.allGranted) {
-            permissionState.requestPermissions()
-            return
-        }
-        scope.launch {
-            isScanning = true
-            errorMessage = null
-            scanResults = emptyList()
+        permissionState.runWithPermission {
+            scope.launch {
+                isScanning = true
+                errorMessage = null
+                scanResults = emptyList()
 
-            try {
-                val service = WifiScanServiceImpl(context)
-                val results = service.scan()
+                try {
+                    val service = WifiScanServiceImpl(context)
+                    val results = service.scan()
 
-                scanResults = results
+                    scanResults = results
 
-                // Log
-                Log.d("WifiScreen", "Reti trovate: ${results.size}")
-                results.forEach { r ->
-                    Log.d("WifiScreen", "SSID: ${r.SSID} | BSSID: ${r.BSSID} | Signal: ${r.level} dBm")
+                    // Log
+                    Log.d("WifiScreen", "Reti trovate: ${results.size}")
+                    results.forEach { r ->
+                        Log.d("WifiScreen", "SSID: ${r.SSID} | BSSID: ${r.BSSID} | Signal: ${r.level} dBm")
+                    }
+
+                    // Toast
+                    val toastMsg = if (results.isEmpty()) "Nessuna rete trovata"
+                    else "${results.size} reti trovate"
+                    Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show()
+
+                } catch (e: Exception) {
+                    val msg = e.message ?: "Errore sconosciuto"
+                    errorMessage = msg
+                    Log.e("WifiScreen", "Errore durante la scansione: $msg")
+                    Toast.makeText(context, "Scansione fallita: $msg", Toast.LENGTH_LONG).show()
+                } finally {
+                    isScanning = false
                 }
-
-                // Toast
-                val toastMsg = if (results.isEmpty()) "Nessuna rete trovata"
-                else "${results.size} reti trovate"
-                Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show()
-
-            } catch (e: Exception) {
-                val msg = e.message ?: "Errore sconosciuto"
-                errorMessage = msg
-                Log.e("WifiScreen", "Errore durante la scansione: $msg")
-                Toast.makeText(context, "Scansione fallita: $msg", Toast.LENGTH_LONG).show()
-            } finally {
-                isScanning = false
             }
         }
-
     }
 
     Column(

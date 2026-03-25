@@ -16,3 +16,15 @@ object WifiPermissions {
         }
     }
 }
+
+// Wrapper specifico per il Wi-Fi
+// Se un domani cambi i permessi del Wi-Fi, modifichi solo questo file.
+@androidx.compose.runtime.Composable
+fun rememberWifiPermissionState(
+    onGranted: () -> Unit = {},
+    onDenied: (denied: List<String>) -> Unit = {}
+): PermissionState = rememberPermissionState(
+    permissions = WifiPermissions.required,
+    onGranted = onGranted,
+    onDenied = onDenied
+)

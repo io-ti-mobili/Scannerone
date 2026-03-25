@@ -16,19 +16,21 @@ fun Context.isPermissionGranted(permission: String): Boolean =
 fun Context.areAllPermissionsGranted(permissions: List<String>): Boolean =
     permissions.all { isPermissionGranted(it) }
 
-// Composable riutilizzabile che espone stato + launcher
+// Composable GENERICO per qualsiasi lista di permessi
 @Composable
-fun rememberWifiPermissionState(
-    permissions: List<String> = WifiPermissions.required,
+fun rememberPermissionState(
+    permissions: List<String>,
     onGranted: () -> Unit = {},
     onDenied: (denied: List<String>) -> Unit = {}
-): WifiPermissionState {
+): PermissionState {
     val context = LocalContext.current
 
-    var allGranted by remember {
+    var allGranted by remember(permissions) {
         mutableStateOf(context.areAllPermissionsGranted(permissions))
     }
-    var deniedPermissions by remember { mutableStateOf<List<String>>(emptyList()) }
+    var deniedPermissions by remember(permissions) { mutableStateOf<List<String>>(emptyList()) }
+
+    var pendingAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -36,21 +38,37 @@ fun rememberWifiPermissionState(
         val denied = result.filterValues { !it }.keys.toList()
         deniedPermissions = denied
         allGranted = denied.isEmpty()
-        if (denied.isEmpty()) onGranted() else onDenied(denied)
+        if (denied.isEmpty()) {
+            onGranted()
+            pendingAction?.invoke()
+            pendingAction = null
+        } else {
+            onDenied(denied)
+            pendingAction = null
+        }
     }
 
-    return remember(allGranted, deniedPermissions) {
-        WifiPermissionState(
+    return remember(allGranted, deniedPermissions, permissions) {
+        PermissionState(
             allGranted = allGranted,
             deniedPermissions = deniedPermissions,
-            requestPermissions = { launcher.launch(permissions.toTypedArray()) }
+            requestPermissions = { launcher.launch(permissions.toTypedArray()) },
+            runWithPermission = { action ->
+                if (context.areAllPermissionsGranted(permissions)) {
+                    action()
+                } else {
+                    pendingAction = action
+                    launcher.launch(permissions.toTypedArray())
+                }
+            }
         )
     }
 }
 
-// Stato esposto al composable chiamante
-data class WifiPermissionState(
+// Stato generico utilizzabile da qualsiasi feature
+data class PermissionState(
     val allGranted: Boolean,
     val deniedPermissions: List<String>,
-    val requestPermissions: () -> Unit
+    val requestPermissions: () -> Unit,
+    val runWithPermission: (onGranted: () -> Unit) -> Unit
 )
