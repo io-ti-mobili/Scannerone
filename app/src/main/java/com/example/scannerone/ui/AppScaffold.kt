@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import com.example.scannerone.map.MapScreen
 import com.example.scannerone.navigation.AppDestination
 import com.example.scannerone.ui.screens.DatabaseScreen
 import com.example.scannerone.ui.screens.HomeScreen
@@ -49,6 +50,7 @@ fun AppScaffold() {
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = false,
         drawerContent = {
             ModalDrawerSheet {
                 Text(
@@ -104,6 +106,7 @@ fun AppScaffold() {
                 AppDestination.TEST -> TestScreen(modifier)
                 AppDestination.DATABASESCREEN -> DatabaseScreen(modifier)
                 AppDestination.WIFIsCAN -> WifiScreen(modifier)
+                AppDestination.MAP -> MapScreen(modifier)
             }
         }
     }
