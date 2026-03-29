@@ -9,7 +9,7 @@ import com.example.scannerone.location.TrilaterationStrategy
 import com.example.scannerone.location.WeightedCentroidStrategy
 import com.example.scannerone.viewmodel.StrategyConfig
 import com.example.scannerone.viewmodel.StrategyType
-import com.example.scannerone.services.nominatimApi.NominatimClient
+import com.example.scannerone.services.nominatimApi.RateLimitedNominatimProxy
 import com.example.scannerone.services.nominatimApi.toWifiNetworkFields
 
 /**
@@ -91,7 +91,7 @@ class WifiScanRepository(private val dao: WifiScanDao) {
             println("=== DEBUG NOMINATIM ===")
             println("Richiesta coordinate: Lat: $lat, Lon: $lon")
             
-            val response = NominatimClient.api.reverseGeocode(lat, lon)
+            val response = RateLimitedNominatimProxy.reverseGeocode(lat, lon)
             println("Risposta Nominatim: $response")
             
             val fields = response.toWifiNetworkFields()
