@@ -10,10 +10,10 @@ import android.os.Build
 enum class PermissionGroup(val permissions: List<String>) {
 
     LOCATION(
-        listOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        )
+        buildList {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
     ),
 
     WIFI(
