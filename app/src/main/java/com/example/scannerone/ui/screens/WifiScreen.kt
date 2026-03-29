@@ -16,7 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.scannerone.Services.ScanService.WifiScanServiceImpl
 import com.example.scannerone.database.AppDatabase
-import com.example.scannerone.permissions.rememberWifiPermissionState
+import com.example.scannerone.permissions.PermissionGroup
+import com.example.scannerone.permissions.rememberPermissionState
 import com.example.scannerone.repository.WifiScanRepository
 import com.example.scannerone.services.GPSService.LocationManagerGPSServiceImpl
 import com.example.scannerone.services.WarDrivingService.WarDrivingServiceImpl
@@ -34,12 +35,7 @@ fun WifiScreen(modifier: Modifier = Modifier) {
     var isWarDriving by remember { mutableStateOf(false) }
     var warDriveLog by remember { mutableStateOf<String?>(null) }
 
-    val permissionState = rememberWifiPermissionState(
-        onGranted = { Toast.makeText(context, "Permessi concessi", Toast.LENGTH_SHORT).show() },
-        onDenied = { denied ->
-            errorMessage = "Permessi negati: ${denied.joinToString(", ")}"
-        }
-    )
+    val permissionState = rememberPermissionState(PermissionGroup.WIFI, PermissionGroup.LOCATION)
 
     fun isThrottleEnabled(context: Context): Boolean {
         // isScanThrottleEnabled e' disponibile solo da API 29 (Android 10)

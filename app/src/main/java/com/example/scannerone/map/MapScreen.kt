@@ -1,13 +1,9 @@
 package com.example.scannerone.map
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -33,9 +29,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.scannerone.permissions.PermissionGroup
+import com.example.scannerone.permissions.rememberPermissionState
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.views.MapView
@@ -45,22 +43,42 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 @Composable
 fun MapScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    val permissionState = rememberPermissionState(PermissionGroup.LOCATION)
 
-    //Configuriamo OSMDroid una volta sola
+    // Configuriamo OSMDroid una volta sola
     LaunchedEffect(Unit) {
         val sharedPreferences = context.getSharedPreferences("osm_prefs", Context.MODE_PRIVATE)
         Configuration.getInstance().load(context, sharedPreferences)
         Configuration.getInstance().userAgentValue = context.packageName
     }
 
-    //Variabili di Stato: Permessi e GPS Hardware
-    var hasLocationPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        )
+    if (!permissionState.allGranted) {
+        // Permessi mancanti
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
+                Text("Per usare la mappa devi concedere i permessi di posizione.", textAlign = TextAlign.Center)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { permissionState.requestPermissions() }) {
+                    Text("Concedi Permessi")
+                }
+            }
+        }
+    } else {
+        // Permessi OK — controlliamo il GPS hardware
+        GpsHardwareGate(modifier)
     }
+}
+
+/**
+ * Controlla se il GPS hardware è attivo.
+ * Se spento, mostra un messaggio con bottone per le impostazioni.
+ * Se acceso, mostra la mappa.
+ */
+@Composable
+private fun GpsHardwareGate(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     var isGpsEnabled by remember {
         mutableStateOf(
@@ -69,59 +87,24 @@ fun MapScreen(modifier: Modifier = Modifier) {
         )
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = { permissions ->
-            hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        }
-    )
-
-    //Osservatore di ciclo di vita: se esci per accendere il GPS e torni, l'app se ne accorge
+    // Re-check al resume: se l'utente accende il GPS dalle impostazioni e torna
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                hasLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+                isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                        locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    //Se mancano i permessi all'apertura, chiedili in automatico la prima volta
-    LaunchedEffect(hasLocationPermission) {
-        if (!hasLocationPermission) {
-            permissionLauncher.launch(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-            )
-        }
-    }
-
-    //Blocca la mappa se non ci sono i permessi o l'antenna del gps è spenta
-    if (!hasLocationPermission) {
-        // BLOCCO 1: Mancano permessi
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                Text("Per usare la mappa devi concedere i permessi di posizione.", textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = {
-                    permissionLauncher.launch(
-                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-                    )
-                }) {
-                    Text("Concedi Permessi")
-                }
-            }
-        }
-    } else if (!isGpsEnabled) {
-        // BLOCCO 2: GPS spento fisicamente
+    if (!isGpsEnabled) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
                 Text("L'antenna GPS è disattivata. Accendila per visualizzare la mappa.", textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = {
-                    // Manda l'utente direttamente alle impostazioni del telefono!
                     context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                 }) {
                     Text("Apri Impostazioni GPS")
@@ -129,7 +112,6 @@ fun MapScreen(modifier: Modifier = Modifier) {
             }
         }
     } else {
-        //SCHERMATA 3: Tutto in regola, mostra la mappa e auto-centra
         MapContent(modifier)
     }
 }
