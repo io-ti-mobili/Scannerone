@@ -15,7 +15,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.scannerone.Services.ScanService.WifiScanServiceImpl
+import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.permissions.rememberWifiPermissionState
+import com.example.scannerone.repository.WifiScanRepository
+import com.example.scannerone.services.GPSService.LocationManagerGPSServiceImpl
+import com.example.scannerone.services.WarDrivingService.WarDrivingServiceImpl
 import kotlinx.coroutines.launch
 
 @Composable
@@ -25,6 +29,10 @@ fun WifiScreen(modifier: Modifier = Modifier) {
     var scanResults by remember { mutableStateOf<List<ScanResult>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isScanning by remember { mutableStateOf(false) }
+
+    // WarDriving test state
+    var isWarDriving by remember { mutableStateOf(false) }
+    var warDriveLog by remember { mutableStateOf<String?>(null) }
 
     val permissionState = rememberWifiPermissionState(
         onGranted = { Toast.makeText(context, "Permessi concessi", Toast.LENGTH_SHORT).show() },
@@ -89,6 +97,57 @@ fun WifiScreen(modifier: Modifier = Modifier) {
                     Toast.makeText(context, "Scansione fallita: $msg", Toast.LENGTH_LONG).show()
                 } finally {
                     isScanning = false
+                }
+            }
+        }
+    }
+
+    fun runWarDriveScan() {
+        permissionState.runWithPermission {
+            scope.launch {
+                isWarDriving = true
+                warDriveLog = null
+                errorMessage = null
+
+                try {
+                    val gpsService = LocationManagerGPSServiceImpl(context)
+                    val scanService = WifiScanServiceImpl(context)
+                    val repository = WifiScanRepository(
+                        AppDatabase.getDatabase(context).wifiScanDao()
+                    )
+                    val warDrivingService = WarDrivingServiceImpl(scanService, gpsService, repository)
+
+                    Log.d("WarDriveTest", "========================================")
+                    Log.d("WarDriveTest", "=== INIZIO TEST WARDRIVING SERVICE ===")
+                    Log.d("WarDriveTest", "========================================")
+
+                    val result = warDrivingService.performScan()
+
+                    val logMsg = buildString {
+                        appendLine("=== WARDRIVING COMPLETATO ===")
+                        appendLine("Posizione GPS: lat=${result.position.latitude}, lon=${result.position.longitude}")
+                        appendLine("Accuratezza GPS: ${result.position.accuracy} m")
+                        appendLine("Reti trovate: ${result.networksFound}")
+                        appendLine("Reti salvate: ${result.networksSaved}")
+                    }
+
+                    Log.d("WarDriveTest", logMsg)
+                    warDriveLog = logMsg
+
+                    Toast.makeText(
+                        context,
+                        "WarDrive OK: ${result.networksSaved}/${result.networksFound} reti salvate",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                } catch (e: Exception) {
+                    val msg = e.message ?: "Errore sconosciuto"
+                    Log.e("WarDriveTest", "ERRORE WARDRIVING: $msg", e)
+                    errorMessage = "WarDrive fallito: $msg"
+                    warDriveLog = "ERRORE: $msg"
+                    Toast.makeText(context, "WarDrive fallito: $msg", Toast.LENGTH_LONG).show()
+                } finally {
+                    isWarDriving = false
                 }
             }
         }
@@ -159,6 +218,43 @@ fun WifiScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (isScanning) "Scansione in corso..." else "Avvia Scansione")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { runWarDriveScan() },
+            enabled = !isWarDriving && !isScanning,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.tertiary
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (isWarDriving) "WarDriving in corso..." else "📡 Test WarDriving")
+        }
+
+        // WarDrive log output
+        warDriveLog?.let { log ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "📋 Output WarDriving",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = log,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
+            }
         }
 
 

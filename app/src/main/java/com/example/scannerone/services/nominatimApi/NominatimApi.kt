@@ -1,4 +1,4 @@
-package com.example.scannerone.nominatimApi
+package com.example.scannerone.services.nominatimApi
 
 import retrofit2.http.GET
 import retrofit2.http.Query

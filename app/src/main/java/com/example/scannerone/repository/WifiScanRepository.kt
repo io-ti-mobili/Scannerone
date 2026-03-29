@@ -9,8 +9,8 @@ import com.example.scannerone.location.TrilaterationStrategy
 import com.example.scannerone.location.WeightedCentroidStrategy
 import com.example.scannerone.viewmodel.StrategyConfig
 import com.example.scannerone.viewmodel.StrategyType
-import com.example.scannerone.nominatimApi.NominatimClient
-import com.example.scannerone.nominatimApi.toWifiNetworkFields
+import com.example.scannerone.services.nominatimApi.NominatimClient
+import com.example.scannerone.services.nominatimApi.toWifiNetworkFields
 
 /**
  * Il Repository funge da "Cervello" tra i Dati grezzi (DAO/Room) e la logica matematica.

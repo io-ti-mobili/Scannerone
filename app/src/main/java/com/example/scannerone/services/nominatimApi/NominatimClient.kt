@@ -1,4 +1,4 @@
-package com.example.scannerone.nominatimApi
+package com.example.scannerone.services.nominatimApi
 
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit

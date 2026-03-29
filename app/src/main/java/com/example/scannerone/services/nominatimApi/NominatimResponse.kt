@@ -1,4 +1,4 @@
-package com.example.scannerone.nominatimApi
+package com.example.scannerone.services.nominatimApi
 
 import com.google.gson.annotations.SerializedName
 
