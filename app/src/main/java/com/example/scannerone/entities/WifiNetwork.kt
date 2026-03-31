@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+//rappresenta il router fisico scansionato
 @Entity(
     tableName = "wifi_networks",
     indices = [Index(value = ["bssid"], unique = true)]

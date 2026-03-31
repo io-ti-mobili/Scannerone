@@ -36,18 +36,22 @@ fun DatabaseScreen(
     Scaffold(
         modifier = modifier,
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                val bssidPool = listOf("00:11:22:33:44:55", "AA:BB:CC:DD:EE:FF", "12:34:56:78:90:AB")
-                val mockBssid = bssidPool.random()
+            FloatingActionButton(onClick = {//utilizzato solo per test per generare dati mock
+                //Generiamo un MAC Address casuale e univoco (es. "F3:1A:C9:8B:42:E1")
+                val hexChars = "0123456789ABCDEF"
+                val randomBssid = (1..6).joinToString(":") {
+                    "${hexChars.random()}${hexChars.random()}"
+                }
 
+                //Inseriamo la rete finta usando il MAC appena generato
                 viewModel.insertScannedNetwork(
-                    bssid = mockBssid,
-                    ssid = "Router_${mockBssid.takeLast(2)}",
+                    bssid = randomBssid,
+                    ssid = "Router_${randomBssid.takeLast(5)}",
                     capabilities = "[WPA2-PSK-CCMP]",
-                    frequency = 2412,
+                    frequency = listOf(2412, 5180, 5500).random(),
                     rssi = -(30..90).random(),
-                    lat = 45.4642 + Math.random() * 0.001,
-                    lon = 9.1900 + Math.random() * 0.001,
+                    lat = 45.4642 + Math.random() * 0.05,
+                    lon = 9.1900 + Math.random() * 0.05,
                     accuracy = (5..15).random().toFloat()
                 )
             }) {

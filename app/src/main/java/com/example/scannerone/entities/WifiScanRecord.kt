@@ -5,6 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+//rappresenta la storia di quante volte un utente ha scansionato una certa rete
 @Entity(
     tableName = "wifi_scan_records",
     foreignKeys = [
