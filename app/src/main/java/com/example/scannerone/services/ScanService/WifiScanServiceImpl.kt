@@ -10,6 +10,7 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
+import com.example.scannerone.services.WarDrivingService.WarDrivingConfig
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
@@ -26,8 +27,7 @@ class WifiScanServiceImpl(private val context: Context) : ScanService {
             throw Exception("Il Wi-Fi è disattivato. Attivalo e riprova.")
         }
 
-        // Ascolta il broadcast di fine scansione tramite Flow
-        val results = withTimeoutOrNull(10_000L) {
+        val results = withTimeoutOrNull(WarDrivingConfig.WIFI_SCAN_TIMEOUT_MS) {
             callbackFlow {
                 val receiver = object : BroadcastReceiver() {
                     override fun onReceive(ctx: Context, intent: Intent) {
@@ -55,33 +55,21 @@ class WifiScanServiceImpl(private val context: Context) : ScanService {
                 val started = wifiManager.startScan()
                 Log.d("WifiScanServiceImpl", "startScan() returned: $started")
 
-                // startScan()=false non è fatale su Android 9+, il receiver
-                // verrà comunque notificato con i risultati cached
-
                 awaitClose { context.unregisterReceiver(receiver) }
             }.first()
         }
 
-        return results
-            ?: run {
-                // Timeout: nessun broadcast ricevuto in 10s, ritorna cache
-                Log.w("WifiScanServiceImpl", "Timeout broadcast, uso scanResults cached")
-                if (ActivityCompat.checkSelfPermission(
-                        this.context,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    Log.e("AAAAAAAAAAAAAAAAAAA", "AAAAAAAA")
-                    return emptyList()
-                }
-                wifiManager.scanResults ?: emptyList()
+        return results ?: run {
+            Log.w("WifiScanServiceImpl", "Timeout broadcast dopo ${WarDrivingConfig.WIFI_SCAN_TIMEOUT_MS}ms, uso cache")
+            if (ActivityCompat.checkSelfPermission(
+                    this.context,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                Log.e("WifiScanServiceImpl", "Permesso ACCESS_FINE_LOCATION mancante")
+                return emptyList()
             }
+            wifiManager.scanResults ?: emptyList()
+        }
     }
 }

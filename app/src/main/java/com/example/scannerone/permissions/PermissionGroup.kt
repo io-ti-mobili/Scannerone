@@ -32,5 +32,13 @@ enum class PermissionGroup(val permissions: List<String>) {
                 add(Manifest.permission.HIGH_SAMPLING_RATE_SENSORS)
             }
         }
+    ),
+
+    NOTIFICATION(
+        buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     );
 }
