@@ -105,7 +105,7 @@ fun AppScaffold() {
                 AppDestination.HOME -> HomeScreen(modifier)
                 AppDestination.TEST -> TestScreen(modifier)
                 AppDestination.DATABASESCREEN -> DatabaseScreen(modifier)
-                AppDestination.WIFIsCAN -> WifiScreen(modifier)
+                AppDestination.WIFISCAN -> WifiScreen(modifier)
                 AppDestination.MAP -> MapScreen(modifier)
             }
         }
