@@ -40,7 +40,7 @@
             </intent-filter>
         </activity>
         <service
-            android:name=".Services.WifiForegroundService"
+            android:name=".services.ScanService.WifiForegroundService"
             android:foregroundServiceType="location"
             android:exported="false" />
     </application>

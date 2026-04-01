@@ -1,4 +1,4 @@
-package com.example.scannerone.Services
+package com.example.scannerone.services.ScanService
 
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -46,7 +46,11 @@ class WifiForegroundService : Service() {
         return START_STICKY
     }
 
+    private var isScanning = false
+
     private fun iniziaScansioneInBackground() {
+        if (isScanning) return
+        isScanning = true
         serviceScope.launch {
             while (isActive) {
                 try {

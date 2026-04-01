@@ -13,5 +13,4 @@ enum class AppDestination(
     HOME("Home", R.drawable.ic_home),
     TEST("Test", R.drawable.ic_home),
     DATABASESCREEN("Database", R.drawable.ic_home),
-    WIFIsCAN("WifiScan", R.drawable.ic_home)
 }
