@@ -144,4 +144,9 @@ class WifiScanRepository(private val dao: WifiScanDao) {
             recalculateNetwork(internalId)
         }
     }
+
+    //Funzione per recuperare le reti che stanno in una certa posizione
+    suspend fun getNetworksInBoundingBox(north: Double, south: Double, east: Double, west: Double): List<WifiNetwork> {
+        return dao.getNetworksInBoundingBox(north, south, east, west)
+    }
 }
