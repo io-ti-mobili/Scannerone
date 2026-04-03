@@ -39,4 +39,12 @@ interface WifiScanDao {
 
     @Query("UPDATE wifi_networks SET realStreet = :street, realCity = :city, realRegion = :region, realCountry = :country WHERE id = :networkId")
     suspend fun updateNetworkAddressDetails(networkId: Int, street: String?, city: String?, region: String?, country: String?)
+
+
+    @Query("""
+    SELECT * FROM wifi_networks 
+    WHERE realLatitude BETWEEN :south AND :north 
+    AND realLongitude BETWEEN :west AND :east
+""")
+    suspend fun getNetworksInBoundingBox(north: Double, south: Double, east: Double, west: Double): List<WifiNetwork>
 }
