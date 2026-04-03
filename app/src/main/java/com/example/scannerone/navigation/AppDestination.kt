@@ -11,7 +11,6 @@ enum class AppDestination(
     val icon: Int,
 ) {
     HOME("Home", R.drawable.ic_home),
-    TEST("Test", R.drawable.ic_home),
     DATABASESCREEN("Database", R.drawable.ic_home),
     WIFISCAN("WifiScan", R.drawable.ic_home),
     MAP("Map", R.drawable.ic_home)

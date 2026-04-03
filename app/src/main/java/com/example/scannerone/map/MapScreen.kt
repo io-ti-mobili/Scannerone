@@ -148,7 +148,7 @@ fun MapContent(modifier: Modifier = Modifier,viewModel: MapViewModel) {
     var locationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
     val visibleNetworks by viewModel.visibleNetworks.collectAsState()
     var clusterer by remember { mutableStateOf<RadiusMarkerClusterer?>(null) }
-    
+
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
