@@ -62,6 +62,9 @@ import org.osmdroid.views.overlay.infowindow.InfoWindow
 @Composable
 fun MapScreen(
     modifier: Modifier = Modifier,
+    targetLat: Double? = null,
+    targetLon: Double? = null,
+    targetSsid: String? = null,
     mapViewModel: MapViewModel = viewModel() //serve a creare il viewModel la prima volta o a riutilizzare lo stesso già creato
 )
 {

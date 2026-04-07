@@ -3,8 +3,10 @@ package com.example.scannerone.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -15,7 +17,8 @@ import java.util.Locale
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun DatabaseScreen(
     modifier: Modifier = Modifier,
-    viewModel: WifiScanViewModel = viewModel()
+    viewModel: WifiScanViewModel = viewModel(),
+    onOpenMap: (Double, Double, String) -> Unit = { _, _, _ -> }
 ) {
     val networks by viewModel.networks.collectAsState()
     val draftConfig by viewModel.draftConfig.collectAsState()
@@ -214,33 +217,56 @@ fun DatabaseScreen(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(text = "SSID: ${net.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                                Text(text = "MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
-                                
-                                if (net.realCity != null) {
-                                    val addressStr = if (net.realStreet != null) "${net.realCity}, ${net.realStreet}" else net.realCity
-                                    Text(
-                                        text = "📍 $addressStr", 
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    )
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(text = "Freq: ${net.frequency} MHz")
-                                    if (net.realLatitude != null && net.realLongitude != null) {
-                                        val latFmt = String.format(Locale.getDefault(), "%.5f", net.realLatitude)
-                                        val lonFmt = String.format(Locale.getDefault(), "%.5f", net.realLongitude)
-                                        val accFmt = net.estAccuracy?.toInt()?.toString() ?: "?"
-                                        Text(text = "Pos: $latFmt, $lonFmt (±${accFmt}m)")
-                                    } else {
-                                        Text(text = "Posizione: In elaborazione...")
+                            // 1. ABBIAMO AGGIUNTO QUESTA ROW
+                            // Serve per mettere i testi a sinistra e il bottone a destra
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+
+                                // 2. LA TUA VECCHIA COLONNA DEI TESTI
+                                // Il "weight(1f)" le dice di spingere il bottone tutto a destra
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = "SSID: ${net.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                                    Text(text = "MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
+
+                                    if (net.realCity != null) {
+                                        val addressStr = if (net.realStreet != null) "${net.realCity}, ${net.realStreet}" else net.realCity
+                                        Text(text = "📍 $addressStr", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(top = 4.dp))
+                                    }
+                                    Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(text = "Freq: ${net.frequency} MHz")
+                                        if (net.realLatitude != null && net.realLongitude != null) {
+                                            val latFmt = String.format(java.util.Locale.getDefault(), "%.5f", net.realLatitude)
+                                            val lonFmt = String.format(java.util.Locale.getDefault(), "%.5f", net.realLongitude)
+                                            val accFmt = net.estAccuracy?.toInt()?.toString() ?: "?"
+                                            Text(text = "Pos: $latFmt, $lonFmt (±${accFmt}m)")
+                                        } else {
+                                            Text(text = "Posizione: In elaborazione...")
+                                        }
                                     }
                                 }
+
+
+                                if (net.realLatitude != null && net.realLongitude != null) {
+                                    IconButton(
+                                        onClick = {
+                                            val lat = net.realLatitude
+                                            val lon = net.realLongitude
+                                            val safeSsid = net.ssid.replace("/", "_")
+
+                                            onOpenMap(lat, lon, safeSsid)
+                                        }
+                                    ) {
+                                        androidx.compose.material3.Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.LocationOn,
+                                            contentDescription = "Apri nella mappa",
+                                            modifier = Modifier.size(36.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+
                             }
                         }
                     }
