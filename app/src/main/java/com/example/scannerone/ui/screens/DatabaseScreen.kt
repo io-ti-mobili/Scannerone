@@ -3,6 +3,8 @@ package com.example.scannerone.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -15,11 +17,14 @@ import java.util.Locale
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun DatabaseScreen(
     modifier: Modifier = Modifier,
-    viewModel: WifiScanViewModel = viewModel()
+    viewModel: WifiScanViewModel = viewModel() ,
+    onOpenMap: (Double, Double, String) -> Unit = { _, _, _ -> }
+
 ) {
     val networks by viewModel.networks.collectAsState()
     val draftConfig by viewModel.draftConfig.collectAsState()
     val appliedConfig by viewModel.config.collectAsState()
+
 
     var searchAddress by remember { mutableStateOf("") }
     var searchSsid by remember { mutableStateOf("") }
@@ -65,12 +70,22 @@ fun DatabaseScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Configurazione Motore Matematico", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Configurazione Motore Matematico",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
 
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         RadioButton(
                             selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.CENTROID,
-                            onClick = { viewModel.updateDraftConfig(draftConfig.copy(baseStrategyType = com.example.scannerone.viewmodel.StrategyType.CENTROID)) }
+                            onClick = {
+                                viewModel.updateDraftConfig(
+                                    draftConfig.copy(
+                                        baseStrategyType = com.example.scannerone.viewmodel.StrategyType.CENTROID
+                                    )
+                                )
+                            }
                         )
                         Text("Weighted Centroid", style = MaterialTheme.typography.bodySmall)
 
@@ -78,19 +93,43 @@ fun DatabaseScreen(
 
                         RadioButton(
                             selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.TRILATERATION,
-                            onClick = { viewModel.updateDraftConfig(draftConfig.copy(baseStrategyType = com.example.scannerone.viewmodel.StrategyType.TRILATERATION)) }
+                            onClick = {
+                                viewModel.updateDraftConfig(
+                                    draftConfig.copy(
+                                        baseStrategyType = com.example.scannerone.viewmodel.StrategyType.TRILATERATION
+                                    )
+                                )
+                            }
                         )
                         Text("Trilateration", style = MaterialTheme.typography.bodySmall)
                     }
 
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Checkbox(checked = draftConfig.useRansac, onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useRansac = it)) })
-                        Text("Applica Filtraggio RANSAC (Scarta Outliers)", style = MaterialTheme.typography.bodySmall)
+                        Checkbox(
+                            checked = draftConfig.useRansac,
+                            onCheckedChange = {
+                                viewModel.updateDraftConfig(
+                                    draftConfig.copy(useRansac = it)
+                                )
+                            })
+                        Text(
+                            "Applica Filtraggio RANSAC (Scarta Outliers)",
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
 
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Checkbox(checked = draftConfig.useGpsWeight, onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useGpsWeight = it)) })
-                        Text("Aggiungi Peso Precisione GPS", style = MaterialTheme.typography.bodySmall)
+                        Checkbox(
+                            checked = draftConfig.useGpsWeight,
+                            onCheckedChange = {
+                                viewModel.updateDraftConfig(
+                                    draftConfig.copy(useGpsWeight = it)
+                                )
+                            })
+                        Text(
+                            "Aggiungi Peso Precisione GPS",
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -112,7 +151,10 @@ fun DatabaseScreen(
                     label = { Text("Ricerca Indirizzo/Paese") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedTextField(
                         value = searchSsid,
                         onValueChange = { searchSsid = it },
@@ -126,7 +168,11 @@ fun DatabaseScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    @OptIn(ExperimentalMaterial3Api::class)
                     ExposedDropdownMenuBox(
                         expanded = typeDropdownExpanded,
                         onExpandedChange = { typeDropdownExpanded = it },
@@ -154,6 +200,7 @@ fun DatabaseScreen(
                             }
                         }
                     }
+                    @OptIn(ExperimentalMaterial3Api::class)
                     ExposedDropdownMenuBox(
                         expanded = secDropdownExpanded,
                         onExpandedChange = { secDropdownExpanded = it },
@@ -182,6 +229,50 @@ fun DatabaseScreen(
                         }
                     }
                 }
+
+                // ==========================================
+                // TASTI CERCA E AZZERA
+                // ==========================================
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            // ESEGUE LA RICERCA!
+                            viewModel.applyFilters(
+                                searchAddress,
+                                searchSsid,
+                                searchBssid,
+                                selectedSecurity
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Search,
+                            contentDescription = null
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Cerca")
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            // AZZERA I CAMPI E LA RICERCA
+                            searchAddress = ""
+                            searchSsid = ""
+                            searchBssid = ""
+                            selectedSecurity = secOptions[0]
+                            selectedType = typeOptions[0]
+                            viewModel.applyFilters("", "", "", "Tutte")
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Azzera")
+                    }
+                }
+
                 androidx.compose.foundation.lazy.LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -201,8 +292,11 @@ fun DatabaseScreen(
             }
 
             if (networks.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    Text("Nessuna rete nel database... in attesa.")
+                Box(
+                    modifier = Modifier.fillMaxSize().weight(1f),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    Text("Nessuna rete trovata.")
                 }
             } else {
                 LazyColumn(
@@ -214,31 +308,75 @@ fun DatabaseScreen(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(text = "SSID: ${net.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                                Text(text = "MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
-                                
-                                if (net.realCity != null) {
-                                    val addressStr = if (net.realStreet != null) "${net.realCity}, ${net.realStreet}" else net.realCity
+                            // ==========================================
+                            // ROW REINSERITA CON IL TASTO MAPPA!
+                            // ==========================================
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "📍 $addressStr", 
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        modifier = Modifier.padding(top = 4.dp)
+                                        text = "SSID: ${net.ssid}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
+                                    Text(
+                                        text = "MAC: ${net.bssid}",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+
+                                    if (net.realCity != null) {
+                                        val addressStr =
+                                            if (net.realStreet != null) "${net.realCity}, ${net.realStreet}" else net.realCity
+                                        Text(
+                                            text = "📍 $addressStr",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(text = "Freq: ${net.frequency} MHz")
+                                        if (net.realLatitude != null && net.realLongitude != null) {
+                                            val latFmt = String.format(
+                                                Locale.getDefault(),
+                                                "%.5f",
+                                                net.realLatitude
+                                            )
+                                            val lonFmt = String.format(
+                                                Locale.getDefault(),
+                                                "%.5f",
+                                                net.realLongitude
+                                            )
+                                            val accFmt = net.estAccuracy?.toInt()?.toString() ?: "?"
+                                            Text(text = "Pos: $latFmt, $lonFmt (±${accFmt}m)")
+                                        } else {
+                                            Text(text = "Posizione: In elaborazione...")
+                                        }
+                                    }
                                 }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(text = "Freq: ${net.frequency} MHz")
-                                    if (net.realLatitude != null && net.realLongitude != null) {
-                                        val latFmt = String.format(Locale.getDefault(), "%.5f", net.realLatitude)
-                                        val lonFmt = String.format(Locale.getDefault(), "%.5f", net.realLongitude)
-                                        val accFmt = net.estAccuracy?.toInt()?.toString() ?: "?"
-                                        Text(text = "Pos: $latFmt, $lonFmt (±${accFmt}m)")
-                                    } else {
-                                        Text(text = "Posizione: In elaborazione...")
+
+                                // IL BOTTONE DELLA MAPPA
+                                if (net.realLatitude != null && net.realLongitude != null) {
+                                    IconButton(
+                                        onClick = {
+                                            onOpenMap(
+                                                net.realLatitude,
+                                                net.realLongitude,
+                                                net.ssid.replace("/", "_")
+                                            )
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.LocationOn,
+                                            contentDescription = "Apri nella mappa",
+                                            modifier = Modifier.size(36.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
                                     }
                                 }
                             }

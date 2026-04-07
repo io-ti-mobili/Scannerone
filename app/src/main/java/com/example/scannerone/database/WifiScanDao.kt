@@ -34,12 +34,25 @@ interface WifiScanDao {
     @Query("SELECT id FROM wifi_networks")
     suspend fun getAllNetworkIds(): List<Int>
 
+    @Query("SELECT * FROM wifi_networks WHERE ssid LIKE '%' || :searchQuery || '%' OR bssid LIKE '%' || :searchQuery || '%' ORDER BY id DESC LIMIT 500")
+    suspend fun searchNetworks(searchQuery: String): List<WifiNetwork>
+
     @Query("SELECT COUNT(*) FROM wifi_scan_records WHERE networkId = :networkId")
     suspend fun getScanCountForNetwork(networkId: Int): Int
 
     @Query("UPDATE wifi_networks SET realStreet = :street, realCity = :city, realRegion = :region, realCountry = :country WHERE id = :networkId")
     suspend fun updateNetworkAddressDetails(networkId: Int, street: String?, city: String?, region: String?, country: String?)
 
+
+    @Query("""
+        SELECT * FROM wifi_networks 
+        WHERE (:ssid = '' OR ssid LIKE '%' || :ssid || '%')
+        AND (:bssid = '' OR bssid LIKE '%' || :bssid || '%')
+        AND (:address = '' OR realCity LIKE '%' || :address || '%' OR realStreet LIKE '%' || :address || '%' OR realRegion LIKE '%' || :address || '%')
+        AND (:security = 'Tutte' OR capabilities LIKE '%' || :security || '%')
+        ORDER BY id DESC LIMIT 500
+    """)
+    fun searchNetworksAdvanced(ssid: String, bssid: String, address: String, security: String): kotlinx.coroutines.flow.Flow<List<WifiNetwork>>
 
     @Query("""
     SELECT * FROM wifi_networks 
