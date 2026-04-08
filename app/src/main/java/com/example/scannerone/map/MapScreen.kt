@@ -235,14 +235,14 @@ fun MapContent(
 
 
                     overlays.add(overlay)
-
                     locationOverlay = overlay
 
                     val newClusterer = RadiusMarkerClusterer(ctx)
                     personalizzaIconaCluster(newClusterer)
                     overlays.add(newClusterer)
                     clusterer = newClusterer
-                    //creo il sensore per monitorare quando l'utnete si sposta con il dito
+
+                    // Aggiorna le reti visibili quando l'utente scorre o zooma (con debounce)
                     val mapListener = org.osmdroid.events.DelayedMapListener(object : org.osmdroid.events.MapListener {
                         override fun onScroll(event: org.osmdroid.events.ScrollEvent?): Boolean {
                             val limiti = this@apply.boundingBox
@@ -255,7 +255,7 @@ fun MapContent(
                             viewModel.recuperaRetiInZona(limiti.actualNorth, limiti.actualSouth, limiti.lonEast, limiti.lonWest)
                             return true
                         }
-                    }, 500) //ritardo per non intasare il database mentre si sta ancora trascinando
+                    }, 500) // Ritardo per non intasare il database durante il trascinamento
 
                     this.addMapListener(mapListener)
                     mapView = this

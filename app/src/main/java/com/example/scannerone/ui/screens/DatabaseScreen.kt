@@ -217,15 +217,10 @@ fun DatabaseScreen(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            // 1. ABBIAMO AGGIUNTO QUESTA ROW
-                            // Serve per mettere i testi a sinistra e il bottone a destra
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-
-                                // 2. LA TUA VECCHIA COLONNA DEI TESTI
-                                // Il "weight(1f)" le dice di spingere il bottone tutto a destra
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(text = "SSID: ${net.ssid}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                                     Text(text = "MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)

@@ -45,11 +45,9 @@ fun AppScaffold() {
     val scope = rememberCoroutineScope()
     var currentDestination by rememberSaveable { mutableStateOf(AppDestination.HOME) }
 
-
     var mapTargetLat by rememberSaveable { mutableStateOf<Double?>(null) }
     var mapTargetLon by rememberSaveable { mutableStateOf<Double?>(null) }
     var mapTargetId by rememberSaveable { mutableStateOf<Int?>(null) }
-    var mapTargetSsid by rememberSaveable { mutableStateOf<String?>(null) }
 
     val lightBlue = Color(0xFFBBDEFB)
 
@@ -75,13 +73,10 @@ fun AppScaffold() {
                         label = { Text(destination.label) },
                         selected = destination == currentDestination,
                         onClick = {
-
-
                             if (destination == AppDestination.MAP) {
                                 mapTargetLat = null
                                 mapTargetLon = null
                                 mapTargetId = null
-                                mapTargetSsid = null
                             }
                             currentDestination = destination
                             scope.launch { drawerState.close() }
@@ -116,12 +111,14 @@ fun AppScaffold() {
             val modifier = Modifier.padding(innerPadding)
             when (currentDestination) {
                 AppDestination.HOME -> HomeScreen(modifier)
-                AppDestination.DATABASESCREEN -> DatabaseScreen(modifier = modifier,
+                AppDestination.DATABASESCREEN -> DatabaseScreen(
+                    modifier = modifier,
                     onOpenMap = { lat, lon, id ->
                         mapTargetLat = lat
                         mapTargetLon = lon
                         mapTargetId = id
-                        currentDestination = AppDestination.MAP}
+                        currentDestination = AppDestination.MAP
+                    }
                 )
                 AppDestination.WIFISCAN -> WifiScreen(modifier)
                 AppDestination.MAP -> MapScreen(
