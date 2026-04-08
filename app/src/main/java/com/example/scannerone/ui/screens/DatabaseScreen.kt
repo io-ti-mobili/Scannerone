@@ -18,7 +18,7 @@ import java.util.Locale
 fun DatabaseScreen(
     modifier: Modifier = Modifier,
     viewModel: WifiScanViewModel = viewModel(),
-    onOpenMap: (Double, Double, String) -> Unit = { _, _, _ -> }
+    onOpenMap: (Double, Double, Int) -> Unit = { _, _, _ -> }
 ) {
     val networks by viewModel.networks.collectAsState()
     val draftConfig by viewModel.draftConfig.collectAsState()
@@ -140,7 +140,7 @@ fun DatabaseScreen(
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeDropdownExpanded) },
-                            modifier = Modifier.menuAnchor()
+                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                         )
                         ExposedDropdownMenu(
                             expanded = typeDropdownExpanded,
@@ -167,7 +167,7 @@ fun DatabaseScreen(
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = secDropdownExpanded) },
-                            modifier = Modifier.menuAnchor()
+                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                         )
                         ExposedDropdownMenu(
                             expanded = secDropdownExpanded,
@@ -253,9 +253,8 @@ fun DatabaseScreen(
                                         onClick = {
                                             val lat = net.realLatitude
                                             val lon = net.realLongitude
-                                            val safeSsid = net.ssid.replace("/", "_")
 
-                                            onOpenMap(lat, lon, safeSsid)
+                                            onOpenMap(lat, lon, net.id)
                                         }
                                     ) {
                                         androidx.compose.material3.Icon(

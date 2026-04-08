@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.location.LocationManager
 import android.provider.Settings
+import android.util.Log
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.compose.foundation.layout.Box
@@ -64,11 +65,10 @@ fun MapScreen(
     modifier: Modifier = Modifier,
     targetLat: Double? = null,
     targetLon: Double? = null,
-    targetSsid: String? = null,
+    targetId: Int? = null,
     mapViewModel: MapViewModel = viewModel() //serve a creare il viewModel la prima volta o a riutilizzare lo stesso già creato
 )
 {
-
     val context = LocalContext.current
     val permissionState = rememberPermissionState(PermissionGroup.LOCATION)
 
@@ -92,7 +92,7 @@ fun MapScreen(
         }
     } else {
         // Permessi OK — controlliamo il GPS hardware
-        GpsHardwareGate(modifier)
+        GpsHardwareGate(modifier, mapViewModel, targetLat, targetLon, targetId)
     }
 }
 
@@ -102,7 +102,13 @@ fun MapScreen(
  * Se acceso, mostra la mappa.
  */
 @Composable
-private fun GpsHardwareGate(modifier: Modifier = Modifier, mapViewModel: MapViewModel = viewModel()) {
+private fun GpsHardwareGate(
+    modifier: Modifier = Modifier,
+    mapViewModel: MapViewModel = viewModel(),
+    targetLat: Double? = null,
+    targetLon: Double? = null,
+    targetId: Int? = null
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -140,23 +146,40 @@ private fun GpsHardwareGate(modifier: Modifier = Modifier, mapViewModel: MapView
         }
     } else {
         //SCHERMATA 3: Tutto in regola, mostra la mappa e auto-centra
-        MapContent(modifier, mapViewModel)
+        MapContent(modifier, mapViewModel, targetLat, targetLon, targetId)
     }
 }
 
 
 @Composable
-fun MapContent(modifier: Modifier = Modifier,viewModel: MapViewModel) {
+fun MapContent(
+    modifier: Modifier = Modifier,
+    viewModel: MapViewModel,
+    targetLat: Double? = null,
+    targetLon: Double? = null,
+    targetId: Int? = null
+) {
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var locationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
     val visibleNetworks by viewModel.visibleNetworks.collectAsState()
     var clusterer by remember { mutableStateOf<RadiusMarkerClusterer?>(null) }
+
+    // Stato per tracciare se abbiamo già aperto il fumetto per il target attuale
+    var hasOpenedTargetInfoWindow by remember(targetId) { mutableStateOf(false) }
 
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
+                val locationManager = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+                val lastLocation = try {
+                    locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                } catch (e: SecurityException) {
+                    null
+                }
+
                 MapView(ctx).apply {
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
@@ -167,14 +190,15 @@ fun MapContent(modifier: Modifier = Modifier,viewModel: MapViewModel) {
 
                     // Comanda a OSMDroid di accendere il tracciamento
                     overlay.enableMyLocation()
-                    // Comanda alla telecamera di SEGUIRE l'utente quando si muove
-                    overlay.enableFollowLocation()
 
-                    overlay.runOnFirstFix {
+                    if (targetLat != null && targetLon != null) {
+                        // Se abbiamo una destinazione specifica, ci "spawniamo" lì
+                        val targetPoint = GeoPoint(targetLat, targetLon)
+                        controller.setZoom(18.0)
+                        controller.setCenter(targetPoint)
+
+                        // Carichiamo subito le reti per quell'area
                         post {
-                            controller.setZoom(18.0)
-                            controller.animateTo(overlay.myLocation)
-                            //ora che ho la posizione esatta, posso richiamare la funzione per prelevare i limiti della mappa
                             val limitiMappa = this.boundingBox
                             viewModel.recuperaRetiInZona(
                                 limitiMappa.actualNorth,
@@ -182,6 +206,30 @@ fun MapContent(modifier: Modifier = Modifier,viewModel: MapViewModel) {
                                 limitiMappa.lonEast,
                                 limitiMappa.lonWest
                             )
+                        }
+                    } else {
+                        // Pre-centriamo sulla lastKnownLocation per evitare il salto da (0,0)
+                        lastLocation?.let {
+                            val lastPoint = GeoPoint(it.latitude, it.longitude)
+                            controller.setZoom(18.0)
+                            controller.setCenter(lastPoint)
+                        }
+
+                        // Altrimenti seguiamo l'utente come al solito
+                        overlay.enableFollowLocation()
+                        overlay.runOnFirstFix {
+                            post {
+                                controller.setZoom(18.0)
+                                // Usiamo setCenter invece di animateTo per lo spawn istantaneo
+                                controller.setCenter(overlay.myLocation)
+                                val limitiMappa = this.boundingBox
+                                viewModel.recuperaRetiInZona(
+                                    limitiMappa.actualNorth,
+                                    limitiMappa.actualSouth,
+                                    limitiMappa.lonEast,
+                                    limitiMappa.lonWest
+                                )
+                            }
                         }
                     }
 
@@ -246,6 +294,13 @@ fun MapContent(modifier: Modifier = Modifier,viewModel: MapViewModel) {
                                 else marker.showInfoWindow()
                                 true
                             }
+
+                            // Se questo è il marker che stiamo cercando (tramite ID database), apriamo il fumetto
+                            if (!hasOpenedTargetInfoWindow && targetId != null && rete.id == targetId) {
+                                startMarker.showInfoWindow()
+                                hasOpenedTargetInfoWindow = true
+                            }
+
                             cls.add(startMarker)
                         }
                     }

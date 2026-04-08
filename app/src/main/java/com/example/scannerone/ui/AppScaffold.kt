@@ -48,6 +48,7 @@ fun AppScaffold() {
 
     var mapTargetLat by rememberSaveable { mutableStateOf<Double?>(null) }
     var mapTargetLon by rememberSaveable { mutableStateOf<Double?>(null) }
+    var mapTargetId by rememberSaveable { mutableStateOf<Int?>(null) }
     var mapTargetSsid by rememberSaveable { mutableStateOf<String?>(null) }
 
     val lightBlue = Color(0xFFBBDEFB)
@@ -79,6 +80,7 @@ fun AppScaffold() {
                             if (destination == AppDestination.MAP) {
                                 mapTargetLat = null
                                 mapTargetLon = null
+                                mapTargetId = null
                                 mapTargetSsid = null
                             }
                             currentDestination = destination
@@ -115,10 +117,10 @@ fun AppScaffold() {
             when (currentDestination) {
                 AppDestination.HOME -> HomeScreen(modifier)
                 AppDestination.DATABASESCREEN -> DatabaseScreen(modifier = modifier,
-                    onOpenMap = { lat, lon, ssid ->
+                    onOpenMap = { lat, lon, id ->
                         mapTargetLat = lat
                         mapTargetLon = lon
-                        mapTargetSsid = ssid
+                        mapTargetId = id
                         currentDestination = AppDestination.MAP}
                 )
                 AppDestination.WIFISCAN -> WifiScreen(modifier)
@@ -126,7 +128,8 @@ fun AppScaffold() {
                     modifier = modifier,
                     targetLat = mapTargetLat,
                     targetLon = mapTargetLon,
-                    targetSsid = mapTargetSsid)
+                    targetId = mapTargetId
+                    )
             }
         }
     }
