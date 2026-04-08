@@ -2,12 +2,10 @@ package com.example.scannerone.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,17 +19,15 @@ import com.example.scannerone.services.ScanService.WifiForegroundService
 @Composable
 fun WifiScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // WarDriving continuo (foreground service)
-    var isWarDrivingContinuo by rememberSaveable { mutableStateOf(false) }
+    // Osserva direttamente il StateFlow del servizio — persistente per tutta la vita del processo
+    val isWarDrivingContinuo by WifiForegroundService.isRunning.collectAsState()
 
     val permissionState = rememberPermissionState(
         PermissionGroup.WIFI,
         PermissionGroup.LOCATION
     )
 
-    // Permessi extra per il wardriving continuo (include NOTIFICATION per il foreground service)
     val permissionStateForeground = rememberPermissionState(
         PermissionGroup.WIFI,
         PermissionGroup.LOCATION,
@@ -57,24 +53,19 @@ fun WifiScreen(modifier: Modifier = Modifier) {
 
     fun toggleWarDrivingContinuo() {
         if (isWarDrivingContinuo) {
-            // Ferma il servizio
             val intent = Intent(context, WifiForegroundService::class.java)
             context.stopService(intent)
-            isWarDrivingContinuo = false
             Toast.makeText(context, "WarDriving continuo disattivato", Toast.LENGTH_SHORT).show()
         } else {
-            // Verifica geolocalizzazione attiva
             if (!isLocationEnabled(context)) {
                 Toast.makeText(context, "Per il wardriving serve la geolocalizzazione attiva.", Toast.LENGTH_LONG).show()
                 val intent = Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                 context.startActivity(intent)
                 return
             }
-            // Avvia il servizio (i permessi vengono verificati da runWithPermission)
             permissionStateForeground.runWithPermission {
                 val intent = Intent(context, WifiForegroundService::class.java)
                 ContextCompat.startForegroundService(context, intent)
-                isWarDrivingContinuo = true
                 Toast.makeText(context, "WarDriving continuo attivato", Toast.LENGTH_SHORT).show()
             }
         }
@@ -110,7 +101,8 @@ fun WifiScreen(modifier: Modifier = Modifier) {
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
-                if (showThrottleWarning) {
+
+        if (showThrottleWarning) {
             Spacer(modifier = Modifier.height(8.dp))
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -139,7 +131,6 @@ fun WifiScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // ── Bottone WarDriving Continuo (Foreground Service) ──
         Button(
             onClick = { toggleWarDrivingContinuo() },
             colors = ButtonDefaults.buttonColors(
@@ -152,22 +143,6 @@ fun WifiScreen(modifier: Modifier = Modifier) {
                 if (isWarDrivingContinuo) "🛑 Ferma WarDriving Continuo"
                 else "🚀 Avvia WarDriving Continuo"
             )
-        }
-
-        // Errore
-        errorMessage?.let { err ->
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "⚠ $err",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
         }
     }
 }

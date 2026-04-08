@@ -20,6 +20,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -29,6 +31,9 @@ class WifiForegroundService : Service() {
         private const val TAG = "WifiForegroundService"
         private const val CHANNEL_ID = "scanner_channel"
         private const val NOTIFICATION_ID = 1
+
+        private val _isRunning = MutableStateFlow(false)
+        val isRunning: StateFlow<Boolean> = _isRunning
     }
 
     private val serviceJob = Job()
@@ -54,6 +59,7 @@ class WifiForegroundService : Service() {
             startForeground(NOTIFICATION_ID, notifica)
         }
 
+        _isRunning.value = true
         iniziaScansioneInBackground()
 
         return START_STICKY
@@ -153,6 +159,7 @@ class WifiForegroundService : Service() {
         Log.d(TAG, "Servizio fermato. Totale scansioni: $totalScansCompleted, reti salvate: $totalNetworksSaved")
         serviceJob.cancel()
         isScanning = false
+        _isRunning.value = false
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
