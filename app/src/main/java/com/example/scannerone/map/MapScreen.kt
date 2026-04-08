@@ -164,9 +164,9 @@ fun MapContent(
     val visibleNetworks by viewModel.visibleNetworks.collectAsState()
     var clusterer by remember { mutableStateOf<RadiusMarkerClusterer?>(null) }
 
-    // Stato per tracciare se abbiamo già aperto il fumetto per il target attuale
-    var hasOpenedTargetInfoWindow by remember(targetId) { mutableStateOf(false) }
-
+    // Flag Compose-reattivo: true = la info window del target deve restare aperta.
+    // L'utente può chiuderla manualmente cliccando il marker.
+    var shouldShowTarget by remember(targetId) { mutableStateOf(targetId != null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
@@ -233,7 +233,6 @@ fun MapContent(
                         }
                     }
 
-
                     overlays.add(overlay)
                     locationOverlay = overlay
 
@@ -270,35 +269,46 @@ fun MapContent(
             update = { view ->
                 clusterer?.let { cls ->
 
-                    //vengono rimossi i vecchi marker per evitare di avere duplicati o robe sparse in giro
-                    for (item in cls.items){
+                    // Rimuoviamo i vecchi marker per evitare duplicati
+                    for (item in cls.items) {
                         item.closeInfoWindow()
                     }
                     cls.items.clear()
+
+                    var targetMarker: Marker? = null
 
                     for (rete in visibleNetworks) {
                         val lat = rete.realLatitude ?: 0.0
                         val lon = rete.realLongitude ?: 0.0
 
                         if (lat != 0.0 && lon != 0.0) {
-                            val pointMarker = GeoPoint(lat, lon)
-                            val startMarker = Marker(view)
-                            startMarker.icon = ContextCompat.getDrawable(view.context, R.drawable.wifi_icon)
-                            startMarker.position = pointMarker
-                            startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            startMarker.title = rete.ssid //aggiungere ulteriori info se necessario
-                            startMarker.snippet = rete.bssid
-                            startMarker.infoWindow = BoldInfoWindow(view) // ← aggiungi qui
-                            startMarker.setOnMarkerClickListener { marker, _ ->
-                                if (marker.isInfoWindowShown) marker.closeInfoWindow()
-                                else marker.showInfoWindow()
-                                true
+                            val startMarker = Marker(view).apply {
+                                icon = ContextCompat.getDrawable(view.context, R.drawable.wifi_icon)
+                                position = GeoPoint(lat, lon)
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                title = rete.ssid
+                                snippet = rete.bssid
+                                infoWindow = BoldInfoWindow(view)
                             }
 
-                            // Se questo è il marker che stiamo cercando (tramite ID database), apriamo il fumetto
-                            if (!hasOpenedTargetInfoWindow && targetId != null && rete.id == targetId) {
-                                startMarker.showInfoWindow()
-                                hasOpenedTargetInfoWindow = true
+                            if (targetId != null && rete.id == targetId) {
+                                targetMarker = startMarker
+                                startMarker.setOnMarkerClickListener { marker, _ ->
+                                    if (marker.isInfoWindowShown) {
+                                        marker.closeInfoWindow()
+                                        shouldShowTarget = false
+                                    } else {
+                                        marker.showInfoWindow()
+                                        shouldShowTarget = true
+                                    }
+                                    true
+                                }
+                            } else {
+                                startMarker.setOnMarkerClickListener { marker, _ ->
+                                    if (marker.isInfoWindowShown) marker.closeInfoWindow()
+                                    else marker.showInfoWindow()
+                                    true
+                                }
                             }
 
                             cls.add(startMarker)
@@ -307,13 +317,17 @@ fun MapContent(
 
                     cls.invalidate()
                     view.invalidate()
+
+                    // Apriamo il fumetto del target DOPO il layout, tramite post{},
+                    // così OSMDroid ha già calcolato le coordinate dello schermo del marker.
+                    if (targetMarker != null && shouldShowTarget) {
+                        val markerToOpen = targetMarker
+                        view.post { markerToOpen.showInfoWindow() }
+                    }
                 }
             }
-
         )
 
-        //Il bottone serve solo se l'utente scorre la mappa col dito per guardare altrove.
-        //Premendolo, riattiva la funzione "Seguimi" (FollowLocation)
         FloatingActionButton(
             onClick = {
                 val overlay = locationOverlay
