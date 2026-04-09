@@ -8,22 +8,28 @@ import com.example.scannerone.services.GPSService.Position
 data class WarDrivingScanResult(
     val networksFound: Int,
     val networksSaved: Int,
-    val position: Position
+    val uniqueNetworksInSession: Int,
+    val position: Position,
+    val totalDistanceMetres: Double = 0.0
 )
 
 /**
  * Servizio di wardriving che orchestra le scansioni Wi-Fi.
  *
- * Un ciclo completo consiste in:
- * 1. Ottenere la posizione GPS corrente
- * 2. Scansionare le reti Wi-Fi visibili
- * 3. Salvare ogni rete trovata nel database, associata alla posizione
+ * Gestisce internamente l'intero ciclo di vita di una sessione:
+ * 1. Crea la sessione nel database
+ * 2. Avvia il GPS
+ * 3. Esegue scansioni Wi-Fi in loop, salvando ogni rete con la posizione GPS
+ * 4. Chiude e aggiorna la sessione alla cancellazione della coroutine
  */
 interface WarDrivingService {
     /**
-     * Esegue un ciclo completo di wardriving.
-     * @return [WarDrivingScanResult] con il numero di reti trovate/salvate e la posizione
-     * @throws Exception se il GPS non è disponibile o la scansione Wi-Fi fallisce
+     * Avvia una sessione completa di wardriving e la esegue fino alla cancellazione.
+     * La sessione viene creata all'avvio e chiusa automaticamente nel blocco finally,
+     * garantendo la coerenza anche in caso di errori.
+     *
+     * @param onResult callback invocata dopo ogni ciclo di scansione completato
+     * @throws Exception se il GPS non è disponibile entro il timeout iniziale
      */
-    suspend fun performScan(): WarDrivingScanResult
+    suspend fun runSession(onResult: (WarDrivingScanResult) -> Unit)
 }

@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.example.scannerone.services.WarDrivingService.WarDrivingConfig
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -37,7 +38,7 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
     private var onPositionUpdateCallback: ((Position) -> Unit)? = null
 
     @Suppress("MissingPermission")
-    fun startContinuousUpdates(onUpdate: ((Position) -> Unit)? = null) {
+    override fun startContinuousUpdates(onUpdate: ((Position) -> Unit)?) {
         if (isContinuousActive) return
         
         onPositionUpdateCallback = onUpdate
@@ -57,6 +58,8 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
                     latitude = location.latitude,
                     longitude = location.longitude,
                     accuracy = location.accuracy,
+                    speed = if (location.hasSpeed()) location.speed else 0f,
+                    hasSpeed = location.hasSpeed(),
                     timestamp = System.currentTimeMillis()
                 )
                 cachedPosition = position
@@ -72,20 +75,44 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
             }
         }
 
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            WarDrivingConfig.GPS_UPDATE_INTERVAL_MS,
-            WarDrivingConfig.GPS_MIN_DISTANCE_M,
-            listener,
-            Looper.getMainLooper()
-        )
+        var providerAttivati = 0
+
+        try {
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    WarDrivingConfig.GPS_UPDATE_INTERVAL_MS,
+                    WarDrivingConfig.GPS_MIN_DISTANCE_M,
+                    listener,
+                    Looper.getMainLooper()
+                )
+                providerAttivati++
+            }
+        } catch (e: Exception) { Log.w(TAG, "Impossibile attivare GPS_PROVIDER", e) }
+
+        try {
+            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    WarDrivingConfig.GPS_UPDATE_INTERVAL_MS,
+                    WarDrivingConfig.GPS_MIN_DISTANCE_M,
+                    listener,
+                    Looper.getMainLooper()
+                )
+                providerAttivati++
+            }
+        } catch (e: Exception) { Log.w(TAG, "Impossibile attivare NETWORK_PROVIDER", e) }
+
+        if (providerAttivati == 0) {
+            throw Exception("Nessun provider di geolocalizzazione disponibile o abilitato. Attiva il GPS/Rete.")
+        }
 
         continuousListener = listener
         isContinuousActive = true
-        Log.d(TAG, "Aggiornamenti GPS continui avviati")
+        Log.d(TAG, "Aggiornamenti continui avviati ($providerAttivati provider attivi)")
     }
 
-    fun stopContinuousUpdates() {
+    override fun stopContinuousUpdates() {
         if (!isContinuousActive) return
 
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
@@ -102,32 +129,17 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
             cachedPosition?.let { return it }
 
             Log.d(TAG, "Modalità continua attiva, in attesa del primo fix...")
-            val position = withTimeoutOrNull(TIMEOUT_MS) {
-                waitForFirstCachedPosition()
-            } ?: throw Exception("Timeout: impossibile ottenere un fix GPS in ${TIMEOUT_MS / 1000} secondi.")
-
-            return position
+            return waitForFirstCachedPosition()
         }
 
         return singleUpdate()
     }
 
     private suspend fun waitForFirstCachedPosition(): Position {
-        return suspendCancellableCoroutine { continuation ->
-            val checkInterval = 100L
-            val thread = Thread {
-                while (continuation.isActive) {
-                    cachedPosition?.let {
-                        if (continuation.isActive) {
-                            continuation.resume(it)
-                        }
-                        return@Thread
-                    }
-                    Thread.sleep(checkInterval)
-                }
-            }
-            thread.start()
-            continuation.invokeOnCancellation { thread.interrupt() }
+        val checkInterval = 100L
+        while (true) {
+            cachedPosition?.let { return it }
+            kotlinx.coroutines.delay(checkInterval)
         }
     }
 
@@ -135,8 +147,11 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
             ?: throw Exception("LocationManager non disponibile sul dispositivo")
 
-        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            throw Exception("Il GPS è disattivato. Attivalo e riprova.")
+        val gpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        val networkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+        if (!gpsEnabled && !networkEnabled) {
+            throw Exception("Tutti i provider di geolocalizzazione sono disabilitati. Attivali dalle impostazioni.")
         }
 
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -146,7 +161,7 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
         }
 
         val location = withTimeoutOrNull(TIMEOUT_MS) {
-            requestSingleGPSUpdate(locationManager)
+            requestSingleUpdate(locationManager)
         } ?: throw Exception("Timeout: impossibile ottenere un fix GPS in ${TIMEOUT_MS / 1000} secondi.")
 
         Log.d(TAG, "Fix ottenuto: lat=${location.latitude}, lon=${location.longitude}, acc=${location.accuracy}m")
@@ -155,17 +170,23 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
             latitude = location.latitude,
             longitude = location.longitude,
             accuracy = location.accuracy,
+            speed = if (location.hasSpeed()) location.speed else 0f,
+            hasSpeed = location.hasSpeed(),
             timestamp = System.currentTimeMillis()
         )
     }
 
     @Suppress("MissingPermission")
-    private suspend fun requestSingleGPSUpdate(locationManager: LocationManager): Location {
+    private suspend fun requestSingleUpdate(locationManager: LocationManager): Location {
         return suspendCancellableCoroutine { continuation ->
+            // AtomicBoolean garantisce che la continuation venga resumata una sola volta,
+            // anche se GPS e NETWORK rispondono quasi contemporaneamente.
+            val resumed = AtomicBoolean(false)
+
             val listener = object : LocationListener {
                 override fun onLocationChanged(location: Location) {
-                    locationManager.removeUpdates(this)
-                    if (continuation.isActive) {
+                    if (resumed.compareAndSet(false, true)) {
+                        locationManager.removeUpdates(this)
                         continuation.resume(location)
                     }
                 }
@@ -173,25 +194,31 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
                 @Deprecated("Deprecated in API level 29")
                 override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
                 override fun onProviderEnabled(provider: String) {}
-                override fun onProviderDisabled(provider: String) {
-                    locationManager.removeUpdates(this)
-                    if (continuation.isActive) {
-                        continuation.resumeWithException(
-                            Exception("GPS disattivato durante l'attesa del fix.")
-                        )
-                    }
-                }
+                override fun onProviderDisabled(provider: String) {}
             }
 
-            locationManager.requestSingleUpdate(
-                LocationManager.GPS_PROVIDER,
-                listener,
-                Looper.getMainLooper()
-            )
+            try {
+                if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    locationManager.requestSingleUpdate(LocationManager.GPS_PROVIDER, listener, Looper.getMainLooper())
+                }
+            } catch (e: Exception) { Log.w(TAG, "Impossibile registrare GPS_PROVIDER per single update", e) }
+
+            try {
+                if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                    locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, listener, Looper.getMainLooper())
+                }
+            } catch (e: Exception) { Log.w(TAG, "Impossibile registrare NETWORK_PROVIDER per single update", e) }
 
             continuation.invokeOnCancellation {
                 locationManager.removeUpdates(listener)
             }
         }
+    }
+
+    override fun isGpsEnabled(): Boolean {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            ?: return false
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || 
+               locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
     }
 }

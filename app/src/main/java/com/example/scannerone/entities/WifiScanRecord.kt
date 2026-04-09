@@ -14,13 +14,20 @@ import androidx.room.PrimaryKey
             parentColumns = ["id"],
             childColumns = ["networkId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = ScanSession::class,
+            parentColumns = ["id"],
+            childColumns = ["sessionId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("networkId")]
+    indices = [Index("networkId"), Index("sessionId")]
 )
 data class WifiScanRecord(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val networkId: Int,
+    val sessionId: Int? = null,
     val timestamp: Long,
     val rssi: Int,
     val scanLatitude: Double,

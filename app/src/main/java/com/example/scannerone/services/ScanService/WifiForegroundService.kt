@@ -14,16 +14,14 @@ import com.example.scannerone.Services.ScanService.WifiScanServiceImpl
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.repository.WifiScanRepository
 import com.example.scannerone.services.GPSService.LocationManagerGPSServiceImpl
-import com.example.scannerone.services.WarDrivingService.WarDrivingConfig
 import com.example.scannerone.services.WarDrivingService.WarDrivingServiceImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class WifiForegroundService : Service() {
 
@@ -42,8 +40,6 @@ class WifiForegroundService : Service() {
     private var isScanning = false
     private var totalNetworksSaved = 0
     private var totalScansCompleted = 0
-    private var lastScanDurationMs = 0L
-    private var lastGPSAgeMs = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -60,6 +56,9 @@ class WifiForegroundService : Service() {
         }
 
         _isRunning.value = true
+        totalNetworksSaved = 0
+        totalScansCompleted = 0
+
         iniziaScansioneInBackground()
 
         return START_STICKY
@@ -70,86 +69,56 @@ class WifiForegroundService : Service() {
         isScanning = true
 
         serviceScope.launch {
-            // Crea le dipendenze del WarDrivingService
+            val db = AppDatabase.getDatabase(applicationContext)
+            val dao = db.wifiScanDao()
+            val repository = WifiScanRepository(dao)
             val scanService = WifiScanServiceImpl(applicationContext)
             val gpsService = LocationManagerGPSServiceImpl(applicationContext)
-            val repository = WifiScanRepository(
-                AppDatabase.getDatabase(applicationContext).wifiScanDao()
-            )
-            val warDrivingService = WarDrivingServiceImpl(scanService, gpsService, repository)
+            val warDrivingService = WarDrivingServiceImpl(scanService, gpsService, repository, dao)
+
+
+            // Attendi attivamente che i servizi siano abilitati
+            while (!gpsService.isGpsEnabled() || !scanService.isWifiEnabled()) {
+                val isGpsEnabled = gpsService.isGpsEnabled()
+                val isWifiEnabled = scanService.isWifiEnabled()
+                
+                val errorMsg = when {
+                    !isGpsEnabled && !isWifiEnabled -> "In attesa di Wi-Fi e GPS..."
+                    !isGpsEnabled -> "In attesa del GPS..."
+                    else -> "In attesa del Wi-Fi..."
+                }
+                aggiornaNotifica(errorMsg)
+                Log.w(TAG, "Attesa attivazione servizi: $errorMsg")
+                
+                // Pausa prima di ricontrollare. 
+                // Se l'utente clicca "Stop", la coroutine viene cancellata e questo delay si interrompe automaticamente.
+                kotlinx.coroutines.delay(2000)
+            }
+
+            aggiornaNotifica("In attesa del primo fix GPS...")
 
             try {
-                gpsService.startContinuousUpdates { position ->
-                    warDrivingService.addGPSPosition(position)
-                    Log.d(TAG, "GPS fix aggiunto al buffer: acc=${position.accuracy}m")
+                warDrivingService.runSession { result ->
+                    totalScansCompleted++
+                    totalNetworksSaved = result.uniqueNetworksInSession
+
+                    val distKm = result.totalDistanceMetres / 1000.0
+                    Log.d(TAG, "Scan #$totalScansCompleted: ${result.networksSaved}/${result.networksFound} reti | " +
+                            "Dist: ${String.format("%.2f", distKm)}km | GPS: ${result.position.getAge()}ms | Totale reti uniche: $totalNetworksSaved")
+
+                    aggiornaNotifica(
+                        String.format(java.util.Locale.getDefault(), "Dist: %.2f km | Reti: %d | Scan #%d",
+                            distKm, totalNetworksSaved, totalScansCompleted)
+                    )
                 }
-                
-                Log.d(TAG, "Wardriving avviato (GPS: ${WarDrivingConfig.GPS_UPDATE_INTERVAL_MS}ms, Scan: ${WarDrivingConfig.SCAN_INTERVAL_MS}ms)")
-
-                Log.d(TAG, "Attesa primo fix GPS...")
-                aggiornaNotifica("In attesa del primo fix GPS...")
-                
-                var waitTime = 0L
-                val maxWaitTime = 30_000L
-                while (isActive) {
-                    try {
-                        val initialPosition = gpsService.getPosition()
-                        Log.d(TAG, "✓ Primo fix GPS: lat=${initialPosition.latitude}, lon=${initialPosition.longitude}, acc=${initialPosition.accuracy}m")
-                        aggiornaNotifica("Primo fix GPS ottenuto, avvio scansioni...")
-                        break
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Attesa fix GPS... (${waitTime/1000}s)")
-                        delay(1000L)
-                        waitTime += 1000L
-                        
-                        if (waitTime >= maxWaitTime) {
-                            Log.e(TAG, "Timeout attesa primo fix GPS dopo ${maxWaitTime/1000}s")
-                            aggiornaNotifica("Errore: GPS non disponibile")
-                            return@launch
-                        }
-                    }
-                }
-
-                while (isActive) {
-                    val cycleStartTime = System.currentTimeMillis()
-                    
-                    try {
-                        val result = warDrivingService.performScan()
-                        totalScansCompleted++
-                        totalNetworksSaved += result.networksSaved
-                        
-                        val cycleDuration = System.currentTimeMillis() - cycleStartTime
-                        lastScanDurationMs = cycleDuration
-                        lastGPSAgeMs = result.position.getAge()
-
-                        Log.d(TAG, "Scan #$totalScansCompleted: ${result.networksSaved}/${result.networksFound} reti | " +
-                                "GPS: ${lastGPSAgeMs}ms | Ciclo: ${cycleDuration}ms | Totale: $totalNetworksSaved")
-
-                        aggiornaNotifica(
-                            "Scan #$totalScansCompleted — ${result.networksSaved}/${result.networksFound} reti | " +
-                            "GPS: ${lastGPSAgeMs}ms | Ciclo: ${cycleDuration}ms"
-                        )
-
-                        val targetDelay = WarDrivingConfig.SCAN_INTERVAL_MS - cycleDuration
-                        val actualDelay = maxOf(0L, targetDelay)
-                        
-                        if (actualDelay == 0L) {
-                            Log.w(TAG, "⚠️ Ciclo lento (${cycleDuration}ms > ${WarDrivingConfig.SCAN_INTERVAL_MS}ms)")
-                        }
-                        
-                        delay(actualDelay)
-
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Errore durante la scansione: ${e.message}", e)
-                        aggiornaNotifica("Errore: ${e.message}")
-                        
-                        val cycleDuration = System.currentTimeMillis() - cycleStartTime
-                        val actualDelay = maxOf(0L, WarDrivingConfig.SCAN_INTERVAL_MS - cycleDuration)
-                        delay(actualDelay)
-                    }
-                }
-            } finally {
-                gpsService.stopContinuousUpdates()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Job.cancel() lancia questa eccezione per interrompere in modo sicuro la coroutine.
+                // Non è un errore, ma la normale procedura di spegnimento. 
+                Log.d(TAG, "Sessione wardriving fermata (coroutine annullata regolarmente).")
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Errore sessione wardriving: ${e.message}", e)
+                aggiornaNotifica("Errore: ${e.message}")
             }
         }
     }

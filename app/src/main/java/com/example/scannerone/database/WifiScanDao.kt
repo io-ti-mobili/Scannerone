@@ -4,8 +4,10 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.entities.WifiScanRecord
+import com.example.scannerone.entities.ScanSession
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -42,6 +44,21 @@ interface WifiScanDao {
 
     @Query("UPDATE wifi_networks SET realStreet = :street, realCity = :city, realRegion = :region, realCountry = :country WHERE id = :networkId")
     suspend fun updateNetworkAddressDetails(networkId: Int, street: String?, city: String?, region: String?, country: String?)
+
+    @Insert
+    suspend fun insertSession(session: ScanSession): Long
+
+    @Update
+    suspend fun updateSession(session: ScanSession)
+
+    @Query("SELECT COUNT(DISTINCT networkId) FROM wifi_scan_records WHERE sessionId = :sessionId")
+    suspend fun getNetworksFoundInSession(sessionId: Int): Int
+
+    @Query("SELECT COUNT(*) FROM wifi_scan_records WHERE sessionId = :sessionId")
+    suspend fun getScansCompletedInSession(sessionId: Int): Int
+
+    @Query("SELECT * FROM scan_sessions ORDER BY startTime DESC")
+    fun getAllSessions(): Flow<List<ScanSession>>
 
 
     @Query("""

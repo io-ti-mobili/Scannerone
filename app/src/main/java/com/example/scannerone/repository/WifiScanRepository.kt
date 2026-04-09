@@ -119,7 +119,8 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         rssi: Int,
         lat: Double,
         lon: Double,
-        accuracy: Float
+        accuracy: Float,
+        sessionId: Int? = null
     ) {
         val network = WifiNetwork(bssid = bssid, ssid = ssid, capabilities = capabilities, frequency = frequency)
         
@@ -130,6 +131,7 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         
         val record = WifiScanRecord(
             networkId = internalId,
+            sessionId = sessionId,
             timestamp = System.currentTimeMillis(),
             rssi = rssi,
             scanLatitude = lat,

@@ -72,4 +72,9 @@ class WifiScanServiceImpl(private val context: Context) : ScanService {
             wifiManager.scanResults ?: emptyList()
         }
     }
+
+    override fun isWifiEnabled(): Boolean {
+        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        return wifiManager?.isWifiEnabled == true
+    }
 }
