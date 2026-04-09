@@ -8,4 +8,5 @@ interface ScanService {
      * @return Una lista di [ScanResult] contenente SSID, BSSID, RSSI, capacità, frequenza, ecc.
      */
     suspend fun scan(): List<ScanResult>
+    fun isWifiEnabled(): Boolean
 }

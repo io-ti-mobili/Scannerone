@@ -214,4 +214,11 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
             }
         }
     }
+
+    override fun isGpsEnabled(): Boolean {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            ?: return false
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || 
+               locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
 }

@@ -116,9 +116,12 @@ class WarDrivingServiceImpl(
                         // Determina se il dispositivo si sta effettivamente muovendo
                         // Usa la velocità hardware del GPS invece della semplice distanza)
                         val isMoving = if (position.hasSpeed) {
+                            Log.d("debug gps", "niente fallback }" + position.speed, )
                             // Se il sensore GPS riporta una velocità < 0.3 m/s (1.08 km/h), consideriamo l'utente fermo
                             position.speed > 0.3f 
                         } else {
+                            Log.d("debug gps", "niente fallback")
+
                             // Fallback: se la velocità hardware non è disponibile, filtriamo il rumore
                             // basandoci su uno spostamento minimo e ragionevole
                             dist > 2.5
@@ -175,14 +178,16 @@ class WarDrivingServiceImpl(
 
             // Chiudi la sessione con i dati finali
             try {
-                dao.updateSession(
-                    ScanSession(
-                        id = sessionId,
-                        startTime = startTime,
-                        endTime = System.currentTimeMillis(),
-                        distanceMetres = totalDistanceMetres
+                kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                    dao.updateSession(
+                        ScanSession(
+                            id = sessionId,
+                            startTime = startTime,
+                            endTime = System.currentTimeMillis(),
+                            distanceMetres = totalDistanceMetres
+                        )
                     )
-                )
+                }
                 Log.d(TAG, "Sessione $sessionId chiusa: ${"%.3f".format(totalDistanceMetres / 1000.0)} km percorsi")
             } catch (e: Exception) {
                 Log.e(TAG, "Errore chiusura sessione $sessionId: ${e.message}")

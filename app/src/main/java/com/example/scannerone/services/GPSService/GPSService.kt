@@ -25,4 +25,5 @@ interface GPSService {
     suspend fun getPosition(): Position
     fun startContinuousUpdates(onUpdate: ((Position) -> Unit)? = null)
     fun stopContinuousUpdates()
+    fun isGpsEnabled(): Boolean
 }

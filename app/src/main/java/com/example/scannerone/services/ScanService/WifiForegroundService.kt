@@ -76,6 +76,25 @@ class WifiForegroundService : Service() {
             val gpsService = LocationManagerGPSServiceImpl(applicationContext)
             val warDrivingService = WarDrivingServiceImpl(scanService, gpsService, repository, dao)
 
+
+            // Attendi attivamente che i servizi siano abilitati
+            while (!gpsService.isGpsEnabled() || !scanService.isWifiEnabled()) {
+                val isGpsEnabled = gpsService.isGpsEnabled()
+                val isWifiEnabled = scanService.isWifiEnabled()
+                
+                val errorMsg = when {
+                    !isGpsEnabled && !isWifiEnabled -> "In attesa di Wi-Fi e GPS..."
+                    !isGpsEnabled -> "In attesa del GPS..."
+                    else -> "In attesa del Wi-Fi..."
+                }
+                aggiornaNotifica(errorMsg)
+                Log.w(TAG, "Attesa attivazione servizi: $errorMsg")
+                
+                // Pausa prima di ricontrollare. 
+                // Se l'utente clicca "Stop", la coroutine viene cancellata e questo delay si interrompe automaticamente.
+                kotlinx.coroutines.delay(2000)
+            }
+
             aggiornaNotifica("In attesa del primo fix GPS...")
 
             try {
@@ -88,10 +107,15 @@ class WifiForegroundService : Service() {
                             "Dist: ${String.format("%.2f", distKm)}km | GPS: ${result.position.getAge()}ms | Totale reti uniche: $totalNetworksSaved")
 
                     aggiornaNotifica(
-                        String.format(Locale.getDefault(), "Dist: %.2f km | Reti: %d | Scan #%d",
+                        String.format(java.util.Locale.getDefault(), "Dist: %.2f km | Reti: %d | Scan #%d",
                             distKm, totalNetworksSaved, totalScansCompleted)
                     )
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Job.cancel() lancia questa eccezione per interrompere in modo sicuro la coroutine.
+                // Non è un errore, ma la normale procedura di spegnimento. 
+                Log.d(TAG, "Sessione wardriving fermata (coroutine annullata regolarmente).")
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Errore sessione wardriving: ${e.message}", e)
                 aggiornaNotifica("Errore: ${e.message}")
