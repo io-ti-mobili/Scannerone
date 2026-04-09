@@ -149,4 +149,6 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     suspend fun getNetworksInBoundingBox(north: Double, south: Double, east: Double, west: Double): List<WifiNetwork> {
         return dao.getNetworksInBoundingBox(north, south, east, west)
     }
+    fun searchNetworksAdvanced(ssid: String, bssid: String, address: String, security: String) =
+        dao.searchNetworksAdvanced(ssid, bssid, address, security)
 }
