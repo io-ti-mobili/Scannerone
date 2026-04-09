@@ -206,9 +206,12 @@ class WarDrivingServiceImpl(
 
         Log.d(TAG, "Ciclo completato: $savedCount/${scanResults.size} reti salvate")
 
+        val uniqueNetworks = dao.getNetworksFoundInSession(sessionId)
+
         return WarDrivingScanResult(
             networksFound = scanResults.size,
             networksSaved = savedCount,
+            uniqueNetworksInSession = uniqueNetworks,
             position = position,
             totalDistanceMetres = totalDistanceMetres
         )

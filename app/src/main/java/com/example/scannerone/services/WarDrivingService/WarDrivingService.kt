@@ -8,6 +8,7 @@ import com.example.scannerone.services.GPSService.Position
 data class WarDrivingScanResult(
     val networksFound: Int,
     val networksSaved: Int,
+    val uniqueNetworksInSession: Int,
     val position: Position,
     val totalDistanceMetres: Double = 0.0
 )

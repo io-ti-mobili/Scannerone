@@ -81,11 +81,11 @@ class WifiForegroundService : Service() {
             try {
                 warDrivingService.runSession { result ->
                     totalScansCompleted++
-                    totalNetworksSaved += result.networksSaved
+                    totalNetworksSaved = result.uniqueNetworksInSession
 
                     val distKm = result.totalDistanceMetres / 1000.0
                     Log.d(TAG, "Scan #$totalScansCompleted: ${result.networksSaved}/${result.networksFound} reti | " +
-                            "Dist: ${String.format("%.2f", distKm)}km | GPS: ${result.position.getAge()}ms | Totale reti: $totalNetworksSaved")
+                            "Dist: ${String.format("%.2f", distKm)}km | GPS: ${result.position.getAge()}ms | Totale reti uniche: $totalNetworksSaved")
 
                     aggiornaNotifica(
                         String.format(Locale.getDefault(), "Dist: %.2f km | Reti: %d | Scan #%d",
