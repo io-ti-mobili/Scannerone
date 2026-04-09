@@ -25,5 +25,5 @@ interface WarDrivingService {
      * @return [WarDrivingScanResult] con il numero di reti trovate/salvate e la posizione
      * @throws Exception se il GPS non è disponibile o la scansione Wi-Fi fallisce
      */
-    suspend fun performScan(): WarDrivingScanResult
+    suspend fun performScan(sessionId: Int? = null): WarDrivingScanResult
 }

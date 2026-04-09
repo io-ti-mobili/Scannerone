@@ -7,6 +7,16 @@ data class Position(
     val timestamp: Long = System.currentTimeMillis()
 ) {
     fun getAge(): Long = System.currentTimeMillis() - timestamp
+
+    fun distanceTo(other: Position): Float {
+        val results = FloatArray(1)
+        android.location.Location.distanceBetween(
+            this.latitude, this.longitude,
+            other.latitude, other.longitude,
+            results
+        )
+        return results[0]
+    }
 }
 
 interface GPSService {

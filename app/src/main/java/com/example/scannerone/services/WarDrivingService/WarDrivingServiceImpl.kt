@@ -79,7 +79,7 @@ class WarDrivingServiceImpl(
         return best.position
     }
 
-    override suspend fun performScan(): WarDrivingScanResult {
+    override suspend fun performScan(sessionId: Int?): WarDrivingScanResult {
         Log.d(TAG, "Selezione migliore posizione GPS dal buffer...")
         val position = getBestRecentPosition()
         Log.d(TAG, "Posizione GPS confermata: lat=${position.latitude}, lon=${position.longitude}, " +
@@ -102,7 +102,8 @@ class WarDrivingServiceImpl(
                     rssi = result.level,
                     lat = position.latitude,
                     lon = position.longitude,
-                    accuracy = position.accuracy
+                    accuracy = position.accuracy,
+                    sessionId = sessionId
                 )
                 savedCount++
             } catch (e: Exception) {

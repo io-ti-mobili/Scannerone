@@ -25,6 +25,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+import com.example.scannerone.entities.ScanSession
+import com.example.scannerone.services.GPSService.Position
+import java.util.Locale
+
 class WifiForegroundService : Service() {
 
     companion object {
@@ -44,6 +48,11 @@ class WifiForegroundService : Service() {
     private var totalScansCompleted = 0
     private var lastScanDurationMs = 0L
     private var lastGPSAgeMs = 0L
+    
+    private var totalDistanceMetres = 0.0
+    private var lastPosition: Position? = null
+    private var startTime = 0L
+    private var currentSessionId: Int? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -60,6 +69,12 @@ class WifiForegroundService : Service() {
         }
 
         _isRunning.value = true
+        startTime = System.currentTimeMillis()
+        totalDistanceMetres = 0.0
+        lastPosition = null
+        totalNetworksSaved = 0
+        totalScansCompleted = 0
+        
         iniziaScansioneInBackground()
 
         return START_STICKY
@@ -70,18 +85,31 @@ class WifiForegroundService : Service() {
         isScanning = true
 
         serviceScope.launch {
-            // Crea le dipendenze del WarDrivingService
+            val db = AppDatabase.getDatabase(applicationContext)
+            val dao = db.wifiScanDao()
+            val repository = WifiScanRepository(dao)
             val scanService = WifiScanServiceImpl(applicationContext)
             val gpsService = LocationManagerGPSServiceImpl(applicationContext)
-            val repository = WifiScanRepository(
-                AppDatabase.getDatabase(applicationContext).wifiScanDao()
-            )
             val warDrivingService = WarDrivingServiceImpl(scanService, gpsService, repository)
 
             try {
+                // Crea sessione iniziale
+                val session = ScanSession(startTime = startTime)
+                currentSessionId = dao.insertSession(session).toInt()
+                Log.d(TAG, "Nuova sessione creata: ID=$currentSessionId")
+
                 gpsService.startContinuousUpdates { position ->
+                    // Calcolo distanza
+                    lastPosition?.let { prev ->
+                        val dist = prev.distanceTo(position)
+                        if (position.accuracy < 50) {
+                            totalDistanceMetres += dist
+                        }
+                    }
+                    lastPosition = position
+                    
                     warDrivingService.addGPSPosition(position)
-                    Log.d(TAG, "GPS fix aggiunto al buffer: acc=${position.accuracy}m")
+                    Log.d(TAG, "GPS fix aggiunto al buffer: acc=${position.accuracy}m | Dist: ${String.format("%.2f", totalDistanceMetres)}m")
                 }
                 
                 Log.d(TAG, "Wardriving avviato (GPS: ${WarDrivingConfig.GPS_UPDATE_INTERVAL_MS}ms, Scan: ${WarDrivingConfig.SCAN_INTERVAL_MS}ms)")
@@ -114,7 +142,7 @@ class WifiForegroundService : Service() {
                     val cycleStartTime = System.currentTimeMillis()
                     
                     try {
-                        val result = warDrivingService.performScan()
+                        val result = warDrivingService.performScan(currentSessionId)
                         totalScansCompleted++
                         totalNetworksSaved += result.networksSaved
                         
@@ -122,12 +150,13 @@ class WifiForegroundService : Service() {
                         lastScanDurationMs = cycleDuration
                         lastGPSAgeMs = result.position.getAge()
 
+                        val distKm = totalDistanceMetres / 1000.0
                         Log.d(TAG, "Scan #$totalScansCompleted: ${result.networksSaved}/${result.networksFound} reti | " +
-                                "GPS: ${lastGPSAgeMs}ms | Ciclo: ${cycleDuration}ms | Totale: $totalNetworksSaved")
+                                "Dist: ${String.format("%.2f", distKm)}km | GPS: ${lastGPSAgeMs}ms | Totale reti: $totalNetworksSaved")
 
                         aggiornaNotifica(
-                            "Scan #$totalScansCompleted — ${result.networksSaved}/${result.networksFound} reti | " +
-                            "GPS: ${lastGPSAgeMs}ms | Ciclo: ${cycleDuration}ms"
+                            String.format(Locale.getDefault(), "Dist: %.2f km | Reti: %d | Scan #%d", 
+                                distKm, totalNetworksSaved, totalScansCompleted)
                         )
 
                         val targetDelay = WarDrivingConfig.SCAN_INTERVAL_MS - cycleDuration
@@ -150,6 +179,22 @@ class WifiForegroundService : Service() {
                 }
             } finally {
                 gpsService.stopContinuousUpdates()
+                
+                // Aggiorna la sessione finale
+                currentSessionId?.let { id ->
+                    val finalSession = ScanSession(
+                        id = id,
+                        startTime = startTime,
+                        endTime = System.currentTimeMillis(),
+                        distanceMetres = totalDistanceMetres
+                    )
+                    try {
+                        dao.updateSession(finalSession)
+                        Log.d(TAG, "Sessione aggiornata: ${totalDistanceMetres/1000.0} km")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Errore aggiornamento sessione: ${e.message}")
+                    }
+                }
             }
         }
     }
