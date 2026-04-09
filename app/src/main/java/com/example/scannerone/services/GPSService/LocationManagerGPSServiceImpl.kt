@@ -37,7 +37,7 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
     private var onPositionUpdateCallback: ((Position) -> Unit)? = null
 
     @Suppress("MissingPermission")
-    fun startContinuousUpdates(onUpdate: ((Position) -> Unit)? = null) {
+    override fun startContinuousUpdates(onUpdate: ((Position) -> Unit)?) {
         if (isContinuousActive) return
         
         onPositionUpdateCallback = onUpdate
@@ -85,7 +85,7 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
         Log.d(TAG, "Aggiornamenti GPS continui avviati")
     }
 
-    fun stopContinuousUpdates() {
+    override fun stopContinuousUpdates() {
         if (!isContinuousActive) return
 
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager

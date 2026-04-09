@@ -21,4 +21,6 @@ data class Position(
 
 interface GPSService {
     suspend fun getPosition(): Position
+    fun startContinuousUpdates(onUpdate: ((Position) -> Unit)? = null)
+    fun stopContinuousUpdates()
 }

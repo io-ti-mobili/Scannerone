@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.entities.WifiScanRecord
 import com.example.scannerone.entities.ScanSession
