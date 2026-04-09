@@ -58,6 +58,8 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
                     latitude = location.latitude,
                     longitude = location.longitude,
                     accuracy = location.accuracy,
+                    speed = if (location.hasSpeed()) location.speed else 0f,
+                    hasSpeed = location.hasSpeed(),
                     timestamp = System.currentTimeMillis()
                 )
                 cachedPosition = position
@@ -168,6 +170,8 @@ class LocationManagerGPSServiceImpl(private val context: Context) : GPSService {
             latitude = location.latitude,
             longitude = location.longitude,
             accuracy = location.accuracy,
+            speed = if (location.hasSpeed()) location.speed else 0f,
+            hasSpeed = location.hasSpeed(),
             timestamp = System.currentTimeMillis()
         )
     }

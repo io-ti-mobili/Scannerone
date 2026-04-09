@@ -4,6 +4,8 @@ data class Position(
     val latitude: Double,
     val longitude: Double,
     val accuracy: Float,
+    val speed: Float = 0f,
+    val hasSpeed: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 ) {
     fun getAge(): Long = System.currentTimeMillis() - timestamp

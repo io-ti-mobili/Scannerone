@@ -104,12 +104,32 @@ class WarDrivingServiceImpl(
 
         try {
             gpsService.startContinuousUpdates { position ->
-                lastPosition?.let { prev ->
-                    val dist = prev.distanceTo(position)
-                    if (position.accuracy < 50) totalDistanceMetres += dist
-                }
-                lastPosition = position
                 addGPSPosition(position)
+
+                if (position.accuracy < 50) {
+                    if (lastPosition == null) {
+                        lastPosition = position
+                    } else {
+                        val prev = lastPosition!!
+                        val dist = prev.distanceTo(position)
+                        
+                        // Determina se il dispositivo si sta effettivamente muovendo
+                        // Usa la velocità hardware del GPS invece della semplice distanza)
+                        val isMoving = if (position.hasSpeed) {
+                            // Se il sensore GPS riporta una velocità < 0.3 m/s (1.08 km/h), consideriamo l'utente fermo
+                            position.speed > 0.3f 
+                        } else {
+                            // Fallback: se la velocità hardware non è disponibile, filtriamo il rumore
+                            // basandoci su uno spostamento minimo e ragionevole
+                            dist > 2.5
+                        }
+
+                        if (isMoving) {
+                            totalDistanceMetres += dist
+                            lastPosition = position
+                        }
+                    }
+                }
                 Log.d(TAG, "GPS fix aggiunto al buffer: acc=${position.accuracy}m | Dist: ${"%.2f".format(totalDistanceMetres)}m")
             }
 
