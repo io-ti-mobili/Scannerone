@@ -31,8 +31,6 @@ fun DatabaseScreen(
     var searchBssid by remember { mutableStateOf("") }
 
     var typeDropdownExpanded by remember { mutableStateOf(false) }
-    val typeOptions = listOf("Tutto", "Reti Wi-Fi", "Bluetooth")
-    var selectedType by remember { mutableStateOf(typeOptions[0]) }
 
     var secDropdownExpanded by remember { mutableStateOf(false) }
     val secOptions = listOf("Tutte", "WPA", "WPA1", "WPA2", "WPA3")
@@ -172,39 +170,12 @@ fun DatabaseScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    ExposedDropdownMenuBox(
-                        expanded = typeDropdownExpanded,
-                        onExpandedChange = { typeDropdownExpanded = it },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        OutlinedTextField(
-                            value = selectedType,
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeDropdownExpanded) },
-                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = typeDropdownExpanded,
-                            onDismissRequest = { typeDropdownExpanded = false }
-                        ) {
-                            typeOptions.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option) },
-                                    onClick = {
-                                        selectedType = option
-                                        typeDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
+
                     @OptIn(ExperimentalMaterial3Api::class)
                     ExposedDropdownMenuBox(
                         expanded = secDropdownExpanded,
                         onExpandedChange = { secDropdownExpanded = it },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth(0.49f)
                     ) {
                         OutlinedTextField(
                             value = selectedSecurity,
@@ -264,7 +235,6 @@ fun DatabaseScreen(
                             searchSsid = ""
                             searchBssid = ""
                             selectedSecurity = secOptions[0]
-                            selectedType = typeOptions[0]
                             viewModel.applyFilters("", "", "", "Tutte")
                         },
                         modifier = Modifier.weight(1f)
