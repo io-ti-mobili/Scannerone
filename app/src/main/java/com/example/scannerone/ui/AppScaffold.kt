@@ -38,10 +38,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.scannerone.ui.screens.MapScreen
-import com.example.scannerone.ui.AppDestination
 import com.example.scannerone.ui.screens.DatabaseScreen
 import com.example.scannerone.ui.screens.HomeScreen
 import com.example.scannerone.ui.screens.WifiScreen
+import com.example.scannerone.ui.screens.RiepilogoScreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,6 +145,7 @@ fun AppScaffold() {
                         targetLon = mapTargetLon,
                         targetId = mapTargetId
                     )
+                    AppDestination.RIEPILOGO -> RiepilogoScreen(modifier)
                 }
             }
         }

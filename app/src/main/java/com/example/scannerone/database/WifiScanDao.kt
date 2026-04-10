@@ -60,6 +60,16 @@ interface WifiScanDao {
     @Query("SELECT * FROM scan_sessions ORDER BY startTime DESC")
     fun getAllSessions(): Flow<List<ScanSession>>
 
+    @Query("SELECT COUNT(*) FROM wifi_networks")
+    fun getTotalNetworksCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM wifi_scan_records")
+    fun getTotalScansCount(): Flow<Int>
+
+
+    @Query("SELECT * FROM wifi_scan_records ORDER BY timestamp DESC LIMIT 500")
+    fun getLastScans(): Flow<List<WifiScanRecord>>
+
 
     @Query("""
         SELECT * FROM wifi_networks 

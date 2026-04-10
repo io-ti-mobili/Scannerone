@@ -7,13 +7,13 @@ import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.repository.WifiScanRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
 
 enum class StrategyType { CENTROID, TRILATERATION }
 
@@ -31,11 +31,40 @@ data class StrategyConfig(
     val useGpsWeight: Boolean = false
 )
 
+data class SessionStats(
+    val uniqueNetworks: Int = 0,
+    val totalScans: Int = 0,
+    val avgRssi: Int = 0
+)
+
 class WifiScanViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = WifiScanRepository(
         AppDatabase.getDatabase(application).wifiScanDao()
     )
+
+
+
+
+    // 1. Totale Reti
+    val totalNetworksCount = repository.getTotalNetworksCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    // 2. Totale Scansioni
+    val totalScansCount = repository.getTotalScansCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+
+
+
+    val lastSessionStats = repository.getLastScans()
+        .map { scans ->
+            val uniqueBssids = scans.map { it.networkId }.distinct().size
+            val avgRssi = if (scans.isNotEmpty()) scans.map { it.rssi }.average().toInt() else 0
+            SessionStats(uniqueNetworks = uniqueBssids, totalScans = scans.size, avgRssi = avgRssi)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SessionStats())
+
 
     private val _config = MutableStateFlow(StrategyConfig())
     val config = _config.asStateFlow()

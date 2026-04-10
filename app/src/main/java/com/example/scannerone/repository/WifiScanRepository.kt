@@ -153,4 +153,9 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     }
     fun searchNetworksAdvanced(ssid: String, bssid: String, address: String, security: String) =
         dao.searchNetworksAdvanced(ssid, bssid, address, security)
+    fun getTotalNetworksCount() = dao.getTotalNetworksCount()
+
+    fun getTotalScansCount() = dao.getTotalScansCount()
+
+    fun getLastScans() = dao.getLastScans()
 }
