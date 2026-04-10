@@ -10,17 +10,28 @@ import android.location.LocationManager
 import android.provider.Settings
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -33,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -166,9 +179,24 @@ fun MapContent(
     val visibleNetworks by viewModel.visibleNetworks.collectAsState()
     var clusterer by remember { mutableStateOf<RadiusMarkerClusterer?>(null) }
 
-    // Flag Compose-reattivo: true = la info window del target deve restare aperta.
-    // L'utente può chiuderla manualmente cliccando il marker.
     var shouldShowTarget by remember(targetId) { mutableStateOf(targetId != null) }
+
+    // Variabili per la ricerca con autocompletamento
+    val suggestions by viewModel.searchSuggestions.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+
+    // Quando il ViewModel emette un GeoPoint, la mappa si anima in quella posizione
+    LaunchedEffect(Unit) {
+        viewModel.moveToLocation.collect { geoPoint ->
+            // Disabilitiamo il "Seguimi" del GPS per permettere di esplorare il luogo cercato
+            locationOverlay?.disableFollowLocation()
+            mapView?.controller?.animateTo(geoPoint)
+            mapView?.controller?.setZoom(16.0) // Zoom adeguato per una città/strada
+
+
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
@@ -190,16 +218,13 @@ fun MapContent(
                     val provider = GpsMyLocationProvider(ctx)
                     val overlay = MyLocationNewOverlay(provider, this)
 
-                    // Comanda a OSMDroid di accendere il tracciamento
                     overlay.enableMyLocation()
 
                     if (targetLat != null && targetLon != null) {
-                        // Se abbiamo una destinazione specifica, ci "spawniamo" lì
                         val targetPoint = GeoPoint(targetLat, targetLon)
                         controller.setZoom(18.0)
                         controller.setCenter(targetPoint)
 
-                        // Carichiamo subito le reti per quell'area
                         post {
                             val limitiMappa = this.boundingBox
                             viewModel.recuperaRetiInZona(
@@ -210,19 +235,16 @@ fun MapContent(
                             )
                         }
                     } else {
-                        // Pre-centriamo sulla lastKnownLocation per evitare il salto da (0,0)
                         lastLocation?.let {
                             val lastPoint = GeoPoint(it.latitude, it.longitude)
                             controller.setZoom(18.0)
                             controller.setCenter(lastPoint)
                         }
 
-                        // Altrimenti seguiamo l'utente come al solito
                         overlay.enableFollowLocation()
                         overlay.runOnFirstFix {
                             post {
                                 controller.setZoom(18.0)
-                                // Usiamo setCenter invece di animateTo per lo spawn istantaneo
                                 controller.setCenter(overlay.myLocation)
                                 val limitiMappa = this.boundingBox
                                 viewModel.recuperaRetiInZona(
@@ -256,28 +278,26 @@ fun MapContent(
                             viewModel.recuperaRetiInZona(limiti.actualNorth, limiti.actualSouth, limiti.lonEast, limiti.lonWest)
                             return true
                         }
-                    }, 500) // Ritardo per non intasare il database durante il trascinamento
+                    }, 500)
 
                     this.addMapListener(mapListener)
                     mapView = this
                 }
             },
             onRelease = { view ->
-                //Buona norma: quando l'utente cambia schermata, spengiamo il GPS per salvare batteria
                 locationOverlay?.disableMyLocation()
                 locationOverlay?.disableFollowLocation()
                 view.onPause()
             },
             update = { view ->
                 clusterer?.let { cls ->
-
-                    // Rimuoviamo i vecchi marker per evitare duplicati
                     for (item in cls.items) {
                         item.closeInfoWindow()
                     }
                     cls.items.clear()
 
                     var targetMarker: Marker? = null
+                    val sharedInfoWindow = BoldInfoWindow(view)
 
                     for (rete in visibleNetworks) {
                         val lat = rete.realLatitude ?: 0.0
@@ -290,7 +310,7 @@ fun MapContent(
                                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                 title = rete.ssid
                                 snippet = rete.bssid
-                                infoWindow = BoldInfoWindow(view)
+                                infoWindow = sharedInfoWindow
                             }
 
                             if (targetId != null && rete.id == targetId) {
@@ -317,11 +337,8 @@ fun MapContent(
                         }
                     }
 
-                    cls.invalidate()
                     view.invalidate()
 
-                    // Apriamo il fumetto del target DOPO il layout, tramite post{},
-                    // così OSMDroid ha già calcolato le coordinate dello schermo del marker.
                     if (targetMarker != null && shouldShowTarget) {
                         val markerToOpen = targetMarker
                         view.post { markerToOpen.showInfoWindow() }
@@ -330,6 +347,90 @@ fun MapContent(
             }
         )
 
+        // --- 2. BARRA DI RICERCA CON SUGGERIMENTI (In primo piano, in alto) ---
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
+            Card(
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { nuovoTesto ->
+                        searchQuery = nuovoTesto
+                        // Chiama il ViewModel che gestisce il Debounce e Nominatim
+                        viewModel.onSearchQueryChanged(nuovoTesto)
+                    },
+                    placeholder = { Text("Cerca città, via...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = androidx.compose.ui.graphics.Color.White,
+                        unfocusedContainerColor = androidx.compose.ui.graphics.Color.White,
+                        focusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
+                        unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
+                        focusedTextColor = androidx.compose.ui.graphics.Color.Black,
+                        cursorColor = androidx.compose.ui.graphics.Color.Black,
+                        unfocusedTextColor = androidx.compose.ui.graphics.Color.Black
+                    ),
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = "Cerca")
+                    },
+                    trailingIcon = {
+                        // Mostra la "X" solo se c'è del testo
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = {
+                                searchQuery = ""
+                                viewModel.onSearchQueryChanged("") // Svuota la ricerca
+                                focusManager.clearFocus() // Nasconde la tastiera
+                            }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Cancella")
+                            }
+                        }
+                    }
+                )
+            }
+
+            // TENDINA DEI SUGGERIMENTI
+            if (suggestions.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                ) {
+                    LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                        items(suggestions) { address ->
+                            // Estraiamo il nome formattato da Nominatim
+                            val displayName = address.extras?.getString("display_name") ?: address.getAddressLine(0)
+
+                            Text(
+                                text = displayName ?: "Indirizzo sconosciuto",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        searchQuery = displayName ?: ""
+                                        viewModel.selectLocation(address) // Lancia l'evento di movimento
+                                        focusManager.clearFocus() // Nasconde la tastiera
+                                    }
+                                    .padding(16.dp)
+                            )
+                            androidx.compose.material3.HorizontalDivider(
+                                color = androidx.compose.ui.graphics.Color.LightGray,
+                                thickness = 0.5.dp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        //puldante per riportare nella posizione attuale
         FloatingActionButton(
             onClick = {
                 val overlay = locationOverlay
@@ -351,6 +452,7 @@ fun MapContent(
         }
     }
 }
+
 
 private fun personalizzaIconaCluster(newClusterer: RadiusMarkerClusterer){
     // Creiamo una tela virtuale (Bitmap)
