@@ -1,4 +1,4 @@
-package com.example.scannerone.location
+package com.example.scannerone.locationCalc
 
 import com.example.scannerone.entities.WifiScanRecord
 import kotlin.math.cos
@@ -7,12 +7,12 @@ import kotlin.math.sqrt
 /**
  * Toglie i dati sporchi usando il concetto "Random Sample Consensus" e passa i dati puliti (Inliers) all'algoritmo matematico finale.
  */
-class RansacStrategyWrapper(
-    private val baseStrategy: LocationStrategy,
+class RansacCalcStrategyWrapper(
+    private val baseStrategy: LocationCalcStrategy,
     private val iterations: Int = 50,
     private val kSamples: Int = 5,
     private val thresholdMeters: Double = 30.0
-) : LocationStrategy {
+) : LocationCalcStrategy {
 
     override fun calculatePosition(scans: List<WifiScanRecord>): PositionEstimate? {
         // RANSAC ha bisogno di un po' di dati per tirare a indovinare

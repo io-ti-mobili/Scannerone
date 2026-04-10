@@ -3,10 +3,10 @@ package com.example.scannerone.repository
 import com.example.scannerone.database.WifiScanDao
 import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.entities.WifiScanRecord
-import com.example.scannerone.location.LocationStrategy
-import com.example.scannerone.location.RansacStrategyWrapper
-import com.example.scannerone.location.TrilaterationStrategy
-import com.example.scannerone.location.WeightedCentroidStrategy
+import com.example.scannerone.locationCalc.LocationCalcStrategy
+import com.example.scannerone.locationCalc.RansacCalcStrategyWrapper
+import com.example.scannerone.locationCalc.TrilaterationCalcStrategy
+import com.example.scannerone.locationCalc.WeightedCentroidCalcStrategy
 import com.example.scannerone.viewmodel.StrategyConfig
 import com.example.scannerone.viewmodel.StrategyType
 import com.example.scannerone.services.nominatimApi.RateLimitedNominatimProxy
@@ -28,21 +28,21 @@ class WifiScanRepository(private val dao: WifiScanDao) {
             updateActiveStrategy()
         }
 
-    private var activeStrategy: LocationStrategy = WeightedCentroidStrategy()
+    private var activeStrategy: LocationCalcStrategy = WeightedCentroidCalcStrategy()
 
     init {
         updateActiveStrategy()
     }
 
     private fun updateActiveStrategy() {
-        var baseStrategy: LocationStrategy = when (config.baseStrategyType) {
-            StrategyType.CENTROID -> WeightedCentroidStrategy(useGpsWeight = config.useGpsWeight)
-            StrategyType.TRILATERATION -> TrilaterationStrategy(useGpsWeight = config.useGpsWeight)
+        var baseStrategy: LocationCalcStrategy = when (config.baseStrategyType) {
+            StrategyType.CENTROID -> WeightedCentroidCalcStrategy(useGpsWeight = config.useGpsWeight)
+            StrategyType.TRILATERATION -> TrilaterationCalcStrategy(useGpsWeight = config.useGpsWeight)
         }
         
         // Pura magia del Decorator Pattern: Avvolgiamo la strategia se richiesto!
         if (config.useRansac) {
-            baseStrategy = RansacStrategyWrapper(baseStrategy)
+            baseStrategy = RansacCalcStrategyWrapper(baseStrategy)
         }
         
         activeStrategy = baseStrategy

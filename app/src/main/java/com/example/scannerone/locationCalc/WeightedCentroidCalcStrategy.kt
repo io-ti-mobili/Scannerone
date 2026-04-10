@@ -1,11 +1,11 @@
-package com.example.scannerone.location
+package com.example.scannerone.locationCalc
 
 import com.example.scannerone.entities.WifiScanRecord
 import kotlin.math.pow
 
-class WeightedCentroidStrategy(
+class WeightedCentroidCalcStrategy(
     private val useGpsWeight: Boolean = false
-) : LocationStrategy {
+) : LocationCalcStrategy {
     
     override fun calculatePosition(scans: List<WifiScanRecord>): PositionEstimate? {
         if (scans.isEmpty()) return null

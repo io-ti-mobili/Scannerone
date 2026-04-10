@@ -1,4 +1,4 @@
-package com.example.scannerone.navigation
+package com.example.scannerone.ui
 
 import com.example.scannerone.R
 

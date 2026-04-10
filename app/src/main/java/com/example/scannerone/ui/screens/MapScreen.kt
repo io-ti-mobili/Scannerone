@@ -1,14 +1,13 @@
-package com.example.scannerone.map
+package com.example.scannerone.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.location.LocationManager
 import android.provider.Settings
-import android.util.Log
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.compose.foundation.layout.Box
@@ -46,7 +45,6 @@ import com.example.scannerone.permissions.rememberPermissionState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.scannerone.viewmodel.MapViewModel
 import org.osmdroid.bonuspack.clustering.RadiusMarkerClusterer
-import org.osmdroid.bonuspack.utils.BonusPackHelper
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -57,6 +55,10 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.toColorInt
 import com.example.scannerone.R
+import org.osmdroid.events.DelayedMapListener
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.views.overlay.infowindow.InfoWindow
 
 
@@ -242,14 +244,14 @@ fun MapContent(
                     clusterer = newClusterer
 
                     // Aggiorna le reti visibili quando l'utente scorre o zooma (con debounce)
-                    val mapListener = org.osmdroid.events.DelayedMapListener(object : org.osmdroid.events.MapListener {
-                        override fun onScroll(event: org.osmdroid.events.ScrollEvent?): Boolean {
+                    val mapListener = DelayedMapListener(object : MapListener {
+                        override fun onScroll(event: ScrollEvent?): Boolean {
                             val limiti = this@apply.boundingBox
                             viewModel.recuperaRetiInZona(limiti.actualNorth, limiti.actualSouth, limiti.lonEast, limiti.lonWest)
                             return true
                         }
 
-                        override fun onZoom(event: org.osmdroid.events.ZoomEvent?): Boolean {
+                        override fun onZoom(event: ZoomEvent?): Boolean {
                             val limiti = this@apply.boundingBox
                             viewModel.recuperaRetiInZona(limiti.actualNorth, limiti.actualSouth, limiti.lonEast, limiti.lonWest)
                             return true
@@ -362,7 +364,7 @@ private fun personalizzaIconaCluster(newClusterer: RadiusMarkerClusterer){
     }
     // Disegniamo un bordino bianco pulito attorno
     val paintBorder = Paint().apply {
-        color = android.graphics.Color.WHITE
+        color = Color.WHITE
         style = Paint.Style.STROKE
         strokeWidth = 6f
         isAntiAlias = true
@@ -377,7 +379,7 @@ private fun personalizzaIconaCluster(newClusterer: RadiusMarkerClusterer){
 
     // Miglioriamo anche il testo del numeretto dentro il cluster
     newClusterer.textPaint.apply {
-        color = android.graphics.Color.WHITE
+        color = Color.WHITE
         textSize = 40f
         isFakeBoldText = true
         textAlign = Paint.Align.CENTER
@@ -389,17 +391,17 @@ class BoldInfoWindow(mapView: MapView) : InfoWindow(
         isFocusable = false
         orientation = LinearLayout.VERTICAL
         setPadding(24, 12, 24, 12)
-        setBackgroundColor(android.graphics.Color.WHITE)
+        setBackgroundColor(Color.WHITE)
 
         addView(TextView(context).apply {
             tag = "ssid"
-            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTypeface(null, Typeface.BOLD)
             textSize = 14f
         })
         addView(TextView(context).apply {
             tag = "bssid"
             textSize = 12f
-            setTextColor(android.graphics.Color.GRAY)
+            setTextColor(Color.GRAY)
         })
     }, mapView
 ) {

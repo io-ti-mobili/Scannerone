@@ -1,21 +1,21 @@
-package com.example.scannerone.location
+package com.example.scannerone.locationCalc
 
 import com.example.scannerone.entities.WifiScanRecord
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.pow
 
-class TrilaterationStrategy(
+class TrilaterationCalcStrategy(
     private val useGpsWeight: Boolean = false,
     private val txPower: Double = -30.0, // Base power at 1 meter
     private val pathLossExponent: Double = 2.5 // Environment constant (2.5 is typical for mixed indoor/outdoor)
-) : LocationStrategy {
+) : LocationCalcStrategy {
 
     override fun calculatePosition(scans: List<WifiScanRecord>): PositionEstimate? {
         // Trilateration requires at least 3 points to intersect circles reliably
         if (scans.size < 3) {
             // Fallback to simpler centroid se non c'è abbastanza tridimensionalità
-            return WeightedCentroidStrategy(useGpsWeight).calculatePosition(scans)
+            return WeightedCentroidCalcStrategy(useGpsWeight).calculatePosition(scans)
         }
 
         val lat0 = scans[0].scanLatitude
@@ -70,7 +70,7 @@ class TrilaterationStrategy(
         val det = ata00 * ata11 - ata01 * ata10
         if (abs(det) < 1e-7) {
             // I punti formano una linea retta o sono sovrapposti (impossibile calcolare intersezione)
-            return WeightedCentroidStrategy(useGpsWeight).calculatePosition(scans)
+            return WeightedCentroidCalcStrategy(useGpsWeight).calculatePosition(scans)
         }
 
         // Inversione della matrice 2x2 e calcolo finale [X, Y]

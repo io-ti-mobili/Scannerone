@@ -1,4 +1,4 @@
-package com.example.scannerone.location
+package com.example.scannerone.locationCalc
 
 import com.example.scannerone.entities.WifiScanRecord
 
@@ -8,7 +8,7 @@ data class PositionEstimate(
     val accuracy: Float
 )
 
-interface LocationStrategy {
+interface LocationCalcStrategy {
     /**
      * Calculates the estimated position of a router based on a list of scan records.
      * @return the estimated position, or null if it cannot be calculated.
