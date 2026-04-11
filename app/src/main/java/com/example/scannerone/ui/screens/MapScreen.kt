@@ -80,7 +80,7 @@ fun MapScreen(
     modifier: Modifier = Modifier,
     targetLat: Double? = null,
     targetLon: Double? = null,
-    targetSsid: String? = null,
+    targetId: Int? = null,
     mapViewModel: MapViewModel = viewModel() //serve a creare il viewModel la prima volta o a riutilizzare lo stesso già creato
 )
 {
@@ -107,7 +107,7 @@ fun MapScreen(
         }
     } else {
         // Permessi OK — controlliamo il GPS hardware
-        GpsHardwareGate(modifier, mapViewModel, targetLat, targetLon, targetSsid)
+        GpsHardwareGate(modifier, mapViewModel, targetLat, targetLon, targetId)
     }
 }
 
@@ -122,7 +122,7 @@ private fun GpsHardwareGate(
     mapViewModel: MapViewModel = viewModel(),
     targetLat: Double? = null,
     targetLon: Double? = null,
-    targetSsid: String? = null
+    targetId: Int? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -161,7 +161,7 @@ private fun GpsHardwareGate(
         }
     } else {
         //SCHERMATA 3: Tutto in regola, mostra la mappa e auto-centra
-        MapContent(modifier, mapViewModel, targetLat, targetLon, targetSsid)
+        MapContent(modifier, mapViewModel, targetLat, targetLon, targetId)
     }
 }
 
@@ -172,14 +172,14 @@ fun MapContent(
     viewModel: MapViewModel,
     targetLat: Double? = null,
     targetLon: Double? = null,
-    targetSsid: String? = null
+    targetId: Int? = null
 ) {
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var locationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
     val visibleNetworks by viewModel.visibleNetworks.collectAsState()
     var clusterer by remember { mutableStateOf<RadiusMarkerClusterer?>(null) }
 
-    var shouldShowTarget by remember(targetSsid) { mutableStateOf(targetSsid != null) }
+    var shouldShowTarget by remember(targetId) { mutableStateOf(targetId != null) }
 
     // Variabili per la ricerca con autocompletamento
     val suggestions by viewModel.searchSuggestions.collectAsState()
@@ -312,7 +312,8 @@ fun MapContent(
                                 snippet = rete.bssid
                                 infoWindow = sharedInfoWindow
                             }
-                            if (targetSsid != null && rete.ssid.replace("/", "_") == targetSsid) {
+
+                            if (targetId != null && rete.id == targetId) {
                                 targetMarker = startMarker
                                 startMarker.setOnMarkerClickListener { marker, _ ->
                                     if (marker.isInfoWindowShown) {

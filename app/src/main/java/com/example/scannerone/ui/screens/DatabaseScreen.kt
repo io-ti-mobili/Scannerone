@@ -21,7 +21,7 @@ import java.util.Locale
 fun DatabaseScreen(
     modifier: Modifier = Modifier,
     viewModel: WifiScanViewModel = viewModel(),
-    onOpenMap: (Double, Double, String) -> Unit = { _, _, _ -> }
+    onOpenMap: (Double, Double, Int) -> Unit = { _, _, _ -> }
 ) {
     val networks by viewModel.networks.collectAsState()
     val draftConfig by viewModel.draftConfig.collectAsState()
@@ -310,8 +310,7 @@ fun DatabaseScreen(
                                 ) {
                                     val currentLat = net.realLatitude
                                     val currentLon = net.realLongitude
-                                    val safeSsid = net.ssid.replace("/", "_")
-
+                                    val currId = net.id
                                     if (currentLat != null && currentLon != null) {
                                         DropdownMenuItem(
                                             text = { Text("Apri in Mappa") },
@@ -324,7 +323,7 @@ fun DatabaseScreen(
                                             },
                                             onClick = {
                                                 menuExpanded = false
-                                                onOpenMap(currentLat, currentLon, safeSsid)
+                                                onOpenMap(currentLat, currentLon, currId)
                                             }
                                         )
                                     }

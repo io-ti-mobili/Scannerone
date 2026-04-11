@@ -54,7 +54,7 @@ fun AppScaffold() {
     // Map targets state (from HEAD)
     var mapTargetLat by rememberSaveable { mutableStateOf<Double?>(null) }
     var mapTargetLon by rememberSaveable { mutableStateOf<Double?>(null) }
-    var mapTargetId by rememberSaveable { mutableStateOf<String?>(null) }
+    var mapTargetId by rememberSaveable { mutableStateOf<Int?>(null) }
 
     // Navigation drawer settings (from chiusuraNavbar)
     val larghezzaMenu = 0.7f //modificare o aumentare per la larghezza del menu
@@ -127,7 +127,6 @@ fun AppScaffold() {
                 }
             ) { innerPadding ->
                 val modifier = Modifier.padding(innerPadding)
-                val mapTargetSsid = null
                 when (currentDestination) {
                     AppDestination.HOME -> HomeScreen(modifier)
                     AppDestination.DATABASESCREEN -> DatabaseScreen(
@@ -144,7 +143,7 @@ fun AppScaffold() {
                         modifier = modifier,
                         targetLat = mapTargetLat,
                         targetLon = mapTargetLon,
-                        targetSsid = mapTargetSsid
+                        targetId = mapTargetId
                     )
                 }
             }
