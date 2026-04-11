@@ -34,7 +34,7 @@ fun DatabaseScreen(
 
     var secDropdownExpanded by remember { mutableStateOf(false) }
     val secOptions = listOf("Tutte", "WPA", "WPA1", "WPA2", "WPA3")
-    var selectedSecurity by remember { mutableStateOf(secOptions[0]) }
+    var selectedSecurity by remember { mutableStateOf("") }
 
     Scaffold(
         modifier = modifier,
@@ -63,86 +63,18 @@ fun DatabaseScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+
+
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "Configurazione Motore Matematico",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.CENTROID,
-                            onClick = {
-                                viewModel.updateDraftConfig(
-                                    draftConfig.copy(
-                                        baseStrategyType = com.example.scannerone.viewmodel.StrategyType.CENTROID
-                                    )
-                                )
-                            }
-                        )
-                        Text("Weighted Centroid", style = MaterialTheme.typography.bodySmall)
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        RadioButton(
-                            selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.TRILATERATION,
-                            onClick = {
-                                viewModel.updateDraftConfig(
-                                    draftConfig.copy(
-                                        baseStrategyType = com.example.scannerone.viewmodel.StrategyType.TRILATERATION
-                                    )
-                                )
-                            }
-                        )
-                        Text("Trilateration", style = MaterialTheme.typography.bodySmall)
-                    }
-
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = draftConfig.useRansac,
-                            onCheckedChange = {
-                                viewModel.updateDraftConfig(
-                                    draftConfig.copy(useRansac = it)
-                                )
-                            })
-                        Text(
-                            "Applica Filtraggio RANSAC (Scarta Outliers)",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = draftConfig.useGpsWeight,
-                            onCheckedChange = {
-                                viewModel.updateDraftConfig(
-                                    draftConfig.copy(useGpsWeight = it)
-                                )
-                            })
-                        Text(
-                            "Aggiungi Peso Precisione GPS",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(
-                        onClick = { viewModel.applyDraftAndRecalculate() },
-                        enabled = draftConfig != appliedConfig,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Applica e Ricalcola DB")
-                    }
-                }
-            }
-
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                Text(
+                    text = "Cerca Rete",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 4.dp, top = 8.dp)
+                )
                 OutlinedTextField(
                     value = searchAddress,
                     onValueChange = { searchAddress = it },
@@ -175,14 +107,15 @@ fun DatabaseScreen(
                     ExposedDropdownMenuBox(
                         expanded = secDropdownExpanded,
                         onExpandedChange = { secDropdownExpanded = it },
-                        modifier = Modifier.fillMaxWidth(0.49f)
+                        modifier = Modifier.weight(1f)
                     ) {
                         OutlinedTextField(
                             value = selectedSecurity,
                             onValueChange = {},
                             readOnly = true,
+                            label = { Text("Sicurezza") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = secDropdownExpanded) },
-                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                         )
                         ExposedDropdownMenu(
                             expanded = secDropdownExpanded,
@@ -199,6 +132,8 @@ fun DatabaseScreen(
                             }
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.weight(1f))
                 }
 
                 // ==========================================
@@ -215,7 +150,7 @@ fun DatabaseScreen(
                                 searchAddress,
                                 searchSsid,
                                 searchBssid,
-                                selectedSecurity
+                                if (selectedSecurity.isEmpty()) "Tutte" else selectedSecurity
                             )
                         },
                         modifier = Modifier.weight(1f)
@@ -234,7 +169,7 @@ fun DatabaseScreen(
                             searchAddress = ""
                             searchSsid = ""
                             searchBssid = ""
-                            selectedSecurity = secOptions[0]
+                            selectedSecurity = ""
                             viewModel.applyFilters("", "", "", "Tutte")
                         },
                         modifier = Modifier.weight(1f)
@@ -243,22 +178,7 @@ fun DatabaseScreen(
                     }
                 }
 
-                androidx.compose.foundation.lazy.LazyRow(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item { Button(onClick = { }) { Text("Esporta CSV/KML Attuale") } }
-                    item { Button(onClick = { }) { Text("Esporta DB Completo (CSV)") } }
-                    item { Button(onClick = { }) { Text("Backup Database") } }
-                    item { Button(onClick = { }) { Text("Importa Reti Osservate") } }
-                    item { Button(onClick = { }) { Text("Salva DB in App") } }
-                    item {
-                        Button(
-                            onClick = { },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) { Text("Cancella DB") }
-                    }
-                }
+
             }
 
             if (networks.isEmpty()) {

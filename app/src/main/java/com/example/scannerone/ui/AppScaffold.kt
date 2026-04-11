@@ -42,6 +42,7 @@ import com.example.scannerone.ui.AppDestination
 import com.example.scannerone.ui.screens.DatabaseScreen
 import com.example.scannerone.ui.screens.HomeScreen
 import com.example.scannerone.ui.screens.WifiScreen
+import com.example.scannerone.ui.screens.SettingsScreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,6 +146,7 @@ fun AppScaffold() {
                         targetLon = mapTargetLon,
                         targetId = mapTargetId
                     )
+                    AppDestination.SETTINGS -> SettingsScreen(modifier)
                 }
             }
         }
