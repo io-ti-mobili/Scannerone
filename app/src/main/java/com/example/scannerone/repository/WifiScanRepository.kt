@@ -158,4 +158,8 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     fun getTotalScansCount() = dao.getTotalScansCount()
 
     fun getLastScans() = dao.getLastScans()
+
+    fun getAllSessions() = dao.getAllSessions()
+    fun getNetworksForSession(sessionId: Int?) = dao.getNetworksForSession(sessionId)
+    fun getScanRecordsForSession(sessionId: Int?) = dao.getScanRecordsForSession(sessionId)
 }

@@ -57,9 +57,6 @@ interface WifiScanDao {
     @Query("SELECT COUNT(*) FROM wifi_scan_records WHERE sessionId = :sessionId")
     suspend fun getScansCompletedInSession(sessionId: Int): Int
 
-    @Query("SELECT * FROM scan_sessions ORDER BY startTime DESC")
-    fun getAllSessions(): Flow<List<ScanSession>>
-
     @Query("SELECT COUNT(*) FROM wifi_networks")
     fun getTotalNetworksCount(): Flow<Int>
 
@@ -87,4 +84,19 @@ interface WifiScanDao {
     AND realLongitude BETWEEN :west AND :east
 """)
     suspend fun getNetworksInBoundingBox(north: Double, south: Double, east: Double, west: Double): List<WifiNetwork>
+    // 1. Ottiene tutte le sessioni dal DB per il menu a tendina
+    @Query("SELECT * FROM scan_sessions ORDER BY startTime DESC")
+    fun getAllSessions(): kotlinx.coroutines.flow.Flow<List<com.example.scannerone.entities.ScanSession>>
+
+
+    @Query("""
+        SELECT DISTINCT w.* FROM wifi_networks w
+        INNER JOIN wifi_scan_records r ON w.id = r.networkId
+        WHERE (:sessionId IS NULL OR r.sessionId = :sessionId)
+    """)
+    fun getNetworksForSession(sessionId: Int?): kotlinx.coroutines.flow.Flow<List<com.example.scannerone.entities.WifiNetwork>>
+
+
+    @Query("SELECT * FROM wifi_scan_records WHERE (:sessionId IS NULL OR sessionId = :sessionId) ORDER BY timestamp ASC")
+    fun getScanRecordsForSession(sessionId: Int?): kotlinx.coroutines.flow.Flow<List<com.example.scannerone.entities.WifiScanRecord>>
 }

@@ -13,6 +13,6 @@ enum class AppDestination(
     HOME("Home", R.drawable.ic_home),
     DATABASESCREEN("Database", R.drawable.ic_home),
     WIFISCAN("Scanner Wifi", R.drawable.ic_home),
-    MAP("Map", R.drawable.ic_home),
+    MAP("Mappa", R.drawable.ic_home),
     RIEPILOGO("Riepilogo", R.drawable.ic_home)
 }

@@ -16,32 +16,43 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.scannerone.viewmodel.WifiScanViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RiepilogoScreen(modifier: Modifier = Modifier) {
-    // Simulazione dati (Questi arriveranno dal tuo ViewModel)
-    val sessionOptions = listOf("Tutte le sessioni", "Oggi (10 Apr)", "Ieri (09 Apr)", "Sessione #45 (05 Apr)")
-    var selectedSession by remember { mutableStateOf(sessionOptions[0]) }
+fun RiepilogoScreen(
+    modifier: Modifier = Modifier,
+    viewModel: WifiScanViewModel = viewModel() // <-- 1. Inietto il ViewModel
+) {
+    // 2. ASCOLTO I DATI REALI DAL VIEWMODEL
+    val sessions by viewModel.allSessions.collectAsState()
+    val selectedId by viewModel.selectedSessionId.collectAsState()
+    val networks by viewModel.sessionNetworks.collectAsState()
+    val categoryData by viewModel.categoryStats.collectAsState()
+    val trendData by viewModel.trendStats.collectAsState()
+
     var expanded by remember { mutableStateOf(false) }
 
-    // Dati Mock per i grafici
-    val totalNetworks = 1450
-    val newNetworks = 120
-    val totalDistance = 45.2f // km
-    val sessionDistance = 3.1f // km
-
-    val categoryData = mapOf(
-        "ISP (Tim, Vodafone...)" to 600f,
-        "Fast Food" to 80f,
-        "Università" to 150f,
-        "Hotspot Personali" to 220f,
-        "Altro" to 400f
-    )
+    // Colori per il grafico a torta
     val categoryColors = listOf(Color(0xFF2196F3), Color(0xFFFF9800), Color(0xFF9C27B0), Color(0xFFF44336), Color(0xFF9E9E9E))
 
-    // Dati per il grafico a linea (Es: reti trovate ogni 10 minuti o nei giorni scorsi)
-    val trendData = listOf(10, 45, 30, 80, 120, 90, 150)
+    // Calcolo UI: Testo visualizzato nel selettore
+    val selectedSessionText = if (selectedId == null) {
+        "Tutte le sessioni"
+    } else {
+        sessions.find { it.id == selectedId }?.let {
+            "Sessione #${it.id} (${viewModel.formatTimestamp(it.startTime)})"
+        } ?: "Tutte le sessioni"
+    }
+
+    // Calcolo UI: Distanza (Totale o della sessione singola) in km
+    val displayedDistance = if (selectedId == null) {
+        sessions.sumOf { it.distanceMetres } / 1000.0
+    } else {
+        (sessions.find { it.id == selectedId }?.distanceMetres ?: 0.0) / 1000.0
+    }
 
     Column(
         modifier = modifier
@@ -52,10 +63,10 @@ fun RiepilogoScreen(modifier: Modifier = Modifier) {
     ) {
         Text("Riepilogo e Statistiche", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
-        // 1. SELETTORE SESSIONE
+        // 1. SELETTORE SESSIONE (Dati Reali)
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
             OutlinedTextField(
-                value = selectedSession,
+                value = selectedSessionText,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Seleziona Sessione") },
@@ -63,43 +74,71 @@ fun RiepilogoScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth().menuAnchor()
             )
             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                sessionOptions.forEach { option ->
+                // Opzione "Tutte"
+                DropdownMenuItem(
+                    text = { Text("Tutte le sessioni") },
+                    onClick = {
+                        viewModel.selectSession(null)
+                        expanded = false
+                    }
+                )
+                // Opzioni dal DB
+                sessions.forEach { session ->
                     DropdownMenuItem(
-                        text = { Text(option) },
+                        text = { Text("Sessione #${session.id} - ${viewModel.formatTimestamp(session.startTime)}") },
                         onClick = {
-                            selectedSession = option
+                            viewModel.selectSession(session.id)
                             expanded = false
-                            // Qui chiamerai viewModel.loadSessionStats(option)
                         }
                     )
                 }
             }
         }
 
-        // 2. CARDS STATISTICHE
+        // 2. CARDS STATISTICHE (Dati Reali)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCard(title = "Reti Totali", value = "$totalNetworks", subtitle = "+$newNetworks nuove", modifier = Modifier.weight(1f))
-            StatCard(title = "Distanza Sessione", value = "${sessionDistance}km", subtitle = "Totale: ${totalDistance}km", modifier = Modifier.weight(1f))
+            StatCard(
+                title = if(selectedId == null) "Reti Totali DB" else "Reti in Sessione",
+                value = "${networks.size}",
+                subtitle = "Router univoci",
+                modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                title = "Distanza Percorsa",
+                value = String.format(Locale.getDefault(), "%.2f km", displayedDistance),
+                subtitle = if(selectedId == null) "Somma totale" else "Questa sessione",
+                modifier = Modifier.weight(1f)
+            )
         }
 
-        // 3. GRAFICO A TORTA (CATEGORIE)
+        // 3. GRAFICO A TORTA (CATEGORIE REALI)
         Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Tipologia Reti Scansionate", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    PieChart(data = categoryData.values.toList(), colors = categoryColors, modifier = Modifier.size(120.dp))
+                if (categoryData.isEmpty() || categoryData.values.sum() == 0f) {
+                    Text("Nessuna rete trovata per questa selezione.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PieChart(
+                            data = categoryData.values.toList(),
+                            colors = categoryColors,
+                            modifier = Modifier.size(120.dp)
+                        )
 
-                    Spacer(modifier = Modifier.width(24.dp))
+                        Spacer(modifier = Modifier.width(24.dp))
 
-                    // Legenda
-                    Column {
-                        categoryData.keys.forEachIndexed { index, name ->
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
-                                Surface(shape = androidx.compose.foundation.shape.CircleShape, color = categoryColors[index], modifier = Modifier.size(12.dp)) {}
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(name, fontSize = 12.sp)
+                        // Legenda con conteggi
+                        Column {
+                            categoryData.keys.forEachIndexed { index, name ->
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Surface(shape = androidx.compose.foundation.shape.CircleShape, color = categoryColors[index], modifier = Modifier.size(12.dp)) {}
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    // Mostriamo anche il numero intero
+                                    val count = categoryData[name]?.toInt() ?: 0
+                                    Text("$name ($count)", fontSize = 12.sp)
+                                }
                             }
                         }
                     }
@@ -107,10 +146,10 @@ fun RiepilogoScreen(modifier: Modifier = Modifier) {
             }
         }
 
-        // 4. GRAFICO A LINEA (ANDAMENTO TEMPORALE)
+        // 4. GRAFICO A LINEA (ANDAMENTO TEMPORALE REALE)
         Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Andamento Scansioni (Tempo / Reti)", style = MaterialTheme.typography.titleMedium)
+                Text("Andamento Scansioni (Punti Rilevati)", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(24.dp))
                 LineChart(data = trendData, modifier = Modifier.fillMaxWidth().height(150.dp))
             }
@@ -119,7 +158,7 @@ fun RiepilogoScreen(modifier: Modifier = Modifier) {
 }
 
 // =======================================================
-// COMPONENTI GRAFICI CUSTOM (Leggeri e Nativi)
+// COMPONENTI GRAFICI CUSTOM (Rimasti invariati!)
 // =======================================================
 
 @Composable
@@ -136,6 +175,7 @@ fun StatCard(title: String, value: String, subtitle: String, modifier: Modifier 
 @Composable
 fun PieChart(data: List<Float>, colors: List<Color>, modifier: Modifier = Modifier) {
     val total = data.sum()
+    if (total == 0f) return // Evita crash se non ci sono dati
     Canvas(modifier = modifier) {
         var startAngle = -90f
         for (i in data.indices) {
@@ -154,7 +194,7 @@ fun PieChart(data: List<Float>, colors: List<Color>, modifier: Modifier = Modifi
 
 @Composable
 fun LineChart(data: List<Int>, modifier: Modifier = Modifier) {
-    if (data.isEmpty()) return
+    if (data.isEmpty() || data.maxOrNull() == 0) return // Evita crash se non ci sono dati
     val maxVal = data.maxOrNull() ?: 1
     val lineColor = MaterialTheme.colorScheme.primary
 
