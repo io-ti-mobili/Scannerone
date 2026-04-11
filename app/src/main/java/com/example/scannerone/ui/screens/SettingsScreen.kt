@@ -119,6 +119,14 @@ fun SettingsScreen(
                 ) {
                     Text("Importa Dati")
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { /* TODO: Cancella DB */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Cancella DB")
+                }
             }
         }
     }
