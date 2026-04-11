@@ -34,6 +34,10 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         updateActiveStrategy()
     }
 
+    suspend fun deleteNetwork(network: com.example.scannerone.entities.WifiNetwork) {
+        dao.deleteNetwork(network)
+    }
+
     private fun updateActiveStrategy() {
         var baseStrategy: LocationCalcStrategy = when (config.baseStrategyType) {
             StrategyType.CENTROID -> WeightedCentroidCalcStrategy(useGpsWeight = config.useGpsWeight)

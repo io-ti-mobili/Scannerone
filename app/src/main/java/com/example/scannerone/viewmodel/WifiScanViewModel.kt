@@ -103,4 +103,9 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
             repository.insertScannedNetwork(bssid, ssid, capabilities, frequency, rssi, lat, lon, accuracy)
         }
     }
+    fun deleteNetwork(network: WifiNetwork) {
+        viewModelScope.launch {
+            repository.deleteNetwork(network)
+        }
+    }
 }

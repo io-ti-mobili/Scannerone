@@ -15,6 +15,8 @@ interface WifiScanDao {
     @Query("SELECT * FROM wifi_networks")
     fun getAllNetworks(): Flow<List<WifiNetwork>>
 
+
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertNetwork(network: WifiNetwork): Long
 
@@ -59,6 +61,11 @@ interface WifiScanDao {
 
     @Query("SELECT * FROM scan_sessions ORDER BY startTime DESC")
     fun getAllSessions(): Flow<List<ScanSession>>
+
+    @androidx.room.Delete
+    suspend fun deleteNetwork(network: com.example.scannerone.entities.WifiNetwork)
+
+
 
 
     @Query("""
