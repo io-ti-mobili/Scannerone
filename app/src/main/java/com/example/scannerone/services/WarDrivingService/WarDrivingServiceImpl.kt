@@ -114,16 +114,29 @@ class WarDrivingServiceImpl(
                         val prev = lastPosition!!
                         val dist = prev.distanceTo(position)
 
+
                         val isMoving = if (position.hasSpeed && position.speed > 0.0f) {
-                            // Se l'hardware fornisce la velocità, aumentiamo la soglia a 0.5 m/s (circa 1.8 km/h).
-                            // A 0.3 m/s beccava ancora il "rumore" del telefono fermo.
                             position.speed > 0.5f
                         } else {
-                            // Fallback (Nessuna velocità): Filtro Anti-Drift.
-                            // 1. Deve essersi allontanato di almeno 8 metri dal punto precedente.
-                            // 2. Lo spostamento deve essere maggiore del margine di errore del GPS in quel momento.
-                            dist > 8.0 && dist > (position.accuracy * 0.6)
+
+                            val isFarEnough = dist > 15.0
+
+
+                            val timeDeltaSec = (position.timestamp - prev.timestamp) / 1000.0
+
+
+                            val isReasonableSpeed = if (timeDeltaSec > 0.5) {
+                                val calculatedSpeed = dist / timeDeltaSec
+                                
+                                calculatedSpeed < 10.0
+                            } else {
+                                false // Salto temporale anomalo
+                            }
+
+
+                            isFarEnough && isReasonableSpeed && dist > (position.accuracy * 0.6)
                         }
+
 
                         if (isMoving) {
                             totalDistanceMetres += dist
