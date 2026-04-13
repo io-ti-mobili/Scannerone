@@ -9,6 +9,7 @@ import com.example.scannerone.locationCalc.TrilaterationCalcStrategy
 import com.example.scannerone.locationCalc.WeightedCentroidCalcStrategy
 import com.example.scannerone.viewmodel.StrategyConfig
 import com.example.scannerone.viewmodel.StrategyType
+import com.example.scannerone.services.WarDrivingService.WarDrivingConfig
 import com.example.scannerone.services.nominatimApi.RateLimitedNominatimProxy
 import com.example.scannerone.services.nominatimApi.toWifiNetworkFields
 
@@ -19,8 +20,14 @@ import com.example.scannerone.services.nominatimApi.toWifiNetworkFields
 class WifiScanRepository(private val dao: WifiScanDao) {
 
     private val scansThresholdForCompute = 5
-    private val maxAcceptedAccuracy = 20.0f
-    private val MIN_RSSI = -85
+    /**
+     * Deve essere coerente con [WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M]:
+     * il wardriving persiste scansioni con accuracy fino a quel valore; un filtro
+     * più stretto qui lascerebbe [WifiNetwork.realLatitude] / realLongitude sempre null.
+     */
+    private val maxAcceptedAccuracy = WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M
+    /** Segnali deboli ma ancora utili per centroid/trilaterazione in movimento. */
+    private val minRssiForQuality = -92
     
     var config = StrategyConfig()
         set(value) {
@@ -71,11 +78,18 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         val history = dao.getScansForNetwork(networkId)
         
         val highQualityScans = history.filter {
-            it.scanAccuracy <= maxAcceptedAccuracy && it.rssi >= MIN_RSSI 
+            it.scanAccuracy <= maxAcceptedAccuracy && it.rssi >= minRssiForQuality
         }
-        
-        if (highQualityScans.isNotEmpty()) {
-            val newPosition = activeStrategy.calculatePosition(highQualityScans)
+
+        val scansForCalc = when {
+            highQualityScans.isNotEmpty() -> highQualityScans
+            history.any { it.scanAccuracy <= maxAcceptedAccuracy } ->
+                history.filter { it.scanAccuracy <= maxAcceptedAccuracy }
+            else -> history
+        }
+
+        if (scansForCalc.isNotEmpty()) {
+            val newPosition = activeStrategy.calculatePosition(scansForCalc)
             if (newPosition != null) {
                 dao.updateNetworkLocation(
                     networkId = networkId,
@@ -83,8 +97,8 @@ class WifiScanRepository(private val dao: WifiScanDao) {
                     lon = newPosition.longitude,
                     acc = newPosition.accuracy
                 )
-                
-                // Richiesta a OpenStreetMap per ricavare l'indirizzo reale
+
+                // Richiesta a OpenStreetMap (Nominatim) per ricavare l'indirizzo reale
                 fetchAndSetNetworkAddress(networkId, newPosition.latitude, newPosition.longitude)
             }
         }
