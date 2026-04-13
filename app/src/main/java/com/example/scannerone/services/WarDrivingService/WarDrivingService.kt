@@ -1,5 +1,6 @@
 package com.example.scannerone.services.WarDrivingService
 
+import android.net.wifi.ScanResult
 import com.example.scannerone.services.GPSService.Position
 
 /**
@@ -10,7 +11,8 @@ data class WarDrivingScanResult(
     val networksSaved: Int,
     val uniqueNetworksInSession: Int,
     val position: Position,
-    val totalDistanceMetres: Double = 0.0
+    val totalDistanceMetres: Double = 0.0,
+    val scanResults: List<ScanResult> = emptyList()
 )
 
 /**
