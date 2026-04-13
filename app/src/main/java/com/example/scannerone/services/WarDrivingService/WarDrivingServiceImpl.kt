@@ -113,19 +113,16 @@ class WarDrivingServiceImpl(
                     } else {
                         val prev = lastPosition!!
                         val dist = prev.distanceTo(position)
-                        
-                        // Determina se il dispositivo si sta effettivamente muovendo
-                        // Usa la velocità hardware del GPS invece della semplice distanza)
-                        val isMoving = if (position.hasSpeed) {
-                            Log.d("debug gps", "niente fallback }" + position.speed, )
-                            // Se il sensore GPS riporta una velocità < 0.3 m/s (1.08 km/h), consideriamo l'utente fermo
-                            position.speed > 0.3f 
-                        } else {
-                            Log.d("debug gps", "niente fallback")
 
-                            // Fallback: se la velocità hardware non è disponibile, filtriamo il rumore
-                            // basandoci su uno spostamento minimo e ragionevole
-                            dist > 2.5
+                        val isMoving = if (position.hasSpeed && position.speed > 0.0f) {
+                            // Se l'hardware fornisce la velocità, aumentiamo la soglia a 0.5 m/s (circa 1.8 km/h).
+                            // A 0.3 m/s beccava ancora il "rumore" del telefono fermo.
+                            position.speed > 0.5f
+                        } else {
+                            // Fallback (Nessuna velocità): Filtro Anti-Drift.
+                            // 1. Deve essersi allontanato di almeno 8 metri dal punto precedente.
+                            // 2. Lo spostamento deve essere maggiore del margine di errore del GPS in quel momento.
+                            dist > 8.0 && dist > (position.accuracy * 0.6)
                         }
 
                         if (isMoving) {
