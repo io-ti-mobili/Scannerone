@@ -34,6 +34,7 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         updateActiveStrategy()
     }
 
+
     private fun updateActiveStrategy() {
         var baseStrategy: LocationCalcStrategy = when (config.baseStrategyType) {
             StrategyType.CENTROID -> WeightedCentroidCalcStrategy(useGpsWeight = config.useGpsWeight)
@@ -146,6 +147,9 @@ class WifiScanRepository(private val dao: WifiScanDao) {
             recalculateNetwork(internalId)
         }
     }
+    suspend fun deleteNetwork(network: WifiNetwork) {
+        dao.deleteNetwork(network)
+    }
 
     //Funzione per recuperare le reti che stanno in una certa posizione
     suspend fun getNetworksInBoundingBox(north: Double, south: Double, east: Double, west: Double): List<WifiNetwork> {
@@ -157,7 +161,6 @@ class WifiScanRepository(private val dao: WifiScanDao) {
 
     fun getTotalScansCount() = dao.getTotalScansCount()
 
-    fun getLastScans() = dao.getLastScans()
 
     fun getAllSessions() = dao.getAllSessions()
     fun getNetworksForSession(sessionId: Int?) = dao.getNetworksForSession(sessionId)

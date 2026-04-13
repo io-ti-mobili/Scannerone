@@ -1,6 +1,7 @@
 package com.example.scannerone.database
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -68,6 +69,9 @@ interface WifiScanDao {
     fun getLastScans(): Flow<List<WifiScanRecord>>
 
 
+
+
+
     @Query("""
         SELECT * FROM wifi_networks 
         WHERE (:ssid = '' OR ssid LIKE '%' || :ssid || '%')
@@ -86,8 +90,7 @@ interface WifiScanDao {
     suspend fun getNetworksInBoundingBox(north: Double, south: Double, east: Double, west: Double): List<WifiNetwork>
     // 1. Ottiene tutte le sessioni dal DB per il menu a tendina
     @Query("SELECT * FROM scan_sessions ORDER BY startTime DESC")
-    fun getAllSessions(): kotlinx.coroutines.flow.Flow<List<com.example.scannerone.entities.ScanSession>>
-
+    fun getAllSessions(): Flow<List<ScanSession>>
 
     @Query("""
         SELECT DISTINCT w.* FROM wifi_networks w
@@ -99,4 +102,6 @@ interface WifiScanDao {
 
     @Query("SELECT * FROM wifi_scan_records WHERE (:sessionId IS NULL OR sessionId = :sessionId) ORDER BY timestamp ASC")
     fun getScanRecordsForSession(sessionId: Int?): kotlinx.coroutines.flow.Flow<List<com.example.scannerone.entities.WifiScanRecord>>
+    @Delete
+    suspend fun deleteNetwork(network: WifiNetwork)
 }

@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.scannerone.utils.NetworkCategory
+import com.example.scannerone.utils.categorizeNetwork
 
 enum class StrategyType { CENTROID, TRILATERATION }
 
@@ -45,28 +47,15 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
     private val repository = WifiScanRepository(
         AppDatabase.getDatabase(application).wifiScanDao()
     )
-
-    enum class NetworkCategory { ISP, FAST_FOOD, UNIVERSITY, HOTSPOT, OTHER }
-
-    fun categorizeNetwork(ssid: String): NetworkCategory {
-        val lowerSsid = ssid.lowercase()
-        return when {
-            lowerSsid.contains("vodafone") || lowerSsid.contains("tim") ||
-                    lowerSsid.contains("fastweb") || lowerSsid.contains("wind") ||
-                    lowerSsid.contains("iliad") || lowerSsid.contains("sky") -> NetworkCategory.ISP
-
-            lowerSsid.contains("mcdonald") || lowerSsid.contains("burger") ||
-                    lowerSsid.contains("kfc") || lowerSsid.contains("starbucks") -> NetworkCategory.FAST_FOOD
-
-            lowerSsid.contains("eduroam") || lowerSsid.contains("unimi") ||
-                    lowerSsid.contains("polimi") || lowerSsid.contains("studenti") -> NetworkCategory.UNIVERSITY
-
-            lowerSsid.contains("iphone") || lowerSsid.contains("android") ||
-                    lowerSsid.contains("galaxy") || lowerSsid.contains("hotspot") -> NetworkCategory.HOTSPOT
-
-            else -> NetworkCategory.OTHER
+    fun deleteNetwork(network: WifiNetwork) {
+        viewModelScope.launch {
+            repository.deleteNetwork(network)
         }
     }
+
+
+
+
 
 
 
@@ -81,16 +70,28 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
 
 
 
+    val allSessions = repository.getAllSessions()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList<com.example.scannerone.entities.ScanSession>()
+        )
 
-    val lastSessionStats = repository.getLastScans()
-        .map { scans ->
-            val uniqueBssids = scans.map { it.networkId }.distinct().size
-            val avgRssi = if (scans.isNotEmpty()) scans.map { it.rssi }.average().toInt() else 0
-            SessionStats(uniqueNetworks = uniqueBssids, totalScans = scans.size, avgRssi = avgRssi)
+
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val lastSessionStats = allSessions.flatMapLatest { sessions ->
+        val lastSession = sessions.firstOrNull()
+        if (lastSession == null) {
+            kotlinx.coroutines.flow.flowOf(SessionStats())
+        } else {
+            repository.getScanRecordsForSession(lastSession.id).map { scans ->
+                val uniqueBssids = scans.map { it.networkId }.distinct().size
+                val avgRssi = if (scans.isNotEmpty()) scans.map { it.rssi }.average().toInt() else 0
+                SessionStats(uniqueNetworks = uniqueBssids, totalScans = scans.size, avgRssi = avgRssi)
+            }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SessionStats())
-
-
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SessionStats())
     private val _config = MutableStateFlow(StrategyConfig())
     val config = _config.asStateFlow()
 
@@ -157,8 +158,6 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
             repository.insertScannedNetwork(bssid, ssid, capabilities, frequency, rssi, lat, lon, accuracy)
         }
     }
-    val allSessions = repository.getAllSessions()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // 2. Sessione attualmente selezionata nel menu a tendina (null = Tutte le sessioni)
     private val _selectedSessionId = MutableStateFlow<Int?>(null)
@@ -200,13 +199,37 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
     val trendStats = _selectedSessionId
         .flatMapLatest { id -> repository.getScanRecordsForSession(id) }
         .map { records ->
-            // Raggruppiamo i record in 7 "blocchi" di tempo per creare la linea del grafico
-            if (records.isEmpty()) return@map listOf(0, 0, 0)
-            val chunkSize = (records.size / 7).coerceAtLeast(1)
-            records.chunked(chunkSize).map { it.size }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), listOf(0, 0, 0))
+            if (records.isEmpty()) return@map emptyList<Pair<String, Int>>()
 
-    // Helper per formattare le date nell'interfaccia
+            // Ordiniamo per tempo
+            val sorted = records.sortedBy { it.timestamp }
+            val startTime = sorted.first().timestamp
+            val endTime = sorted.last().timestamp
+            val totalDuration = (endTime - startTime).coerceAtLeast(1L)
+
+            // Creiamo 5 punti temporali lungo la durata della sessione
+            val numSteps = 5
+            val stepDuration = totalDuration / numSteps
+
+            val uniqueNetworks = mutableSetOf<Int>()
+            val trend = mutableListOf<Pair<String, Int>>()
+            var recordIndex = 0
+
+            for (i in 0..numSteps) {
+                val currentPointTime = startTime + (i * stepDuration)
+
+                // Aggiungiamo tutte le reti viste fino a questo punto temporale
+                while (recordIndex < sorted.size && sorted[recordIndex].timestamp <= currentPointTime) {
+                    uniqueNetworks.add(sorted[recordIndex].networkId)
+                    recordIndex++
+                }
+
+                // Formattiamo l'orario (Es: "14:30:00")
+                val timeString = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(currentPointTime))
+                trend.add(Pair(timeString, uniqueNetworks.size))
+            }
+            trend
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     fun formatTimestamp(time: Long): String {
         return SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(time))
     }
