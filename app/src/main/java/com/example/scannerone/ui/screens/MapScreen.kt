@@ -3,6 +3,8 @@ package com.example.scannerone.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.foundation.layout.Arrangement
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -430,25 +432,51 @@ fun MapContent(
             }
         }
 
-        //puldante per riportare nella posizione attuale
-        FloatingActionButton(
-            onClick = {
-                val overlay = locationOverlay
-                val currentPos = overlay?.myLocation
-                if (overlay != null && currentPos != null) {
-                    overlay.enableFollowLocation()
-                    mapView?.controller?.animateTo(currentPos)
-                    mapView?.controller?.setZoom(18.0)
-                }
-            },
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Centra su di me"
-            )
+
+
+            FloatingActionButton(
+                onClick = {
+                    mapView?.boundingBox?.let { limiti ->
+                        viewModel.recuperaRetiInZona(
+                            limiti.actualNorth,
+                            limiti.actualSouth,
+                            limiti.lonEast,
+                            limiti.lonWest
+                        )
+                    }
+                },
+
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Ricarica reti in questa zona"
+                )
+            }
+
+
+            FloatingActionButton(
+                onClick = {
+                    val overlay = locationOverlay
+                    val currentPos = overlay?.myLocation
+                    if (overlay != null && currentPos != null) {
+                        overlay.enableFollowLocation()
+                        mapView?.controller?.animateTo(currentPos)
+                        mapView?.controller?.setZoom(18.0)
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Centra su di me"
+                )
+            }
         }
     }
 }
