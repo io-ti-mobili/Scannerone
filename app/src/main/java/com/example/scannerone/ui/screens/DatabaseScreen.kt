@@ -33,8 +33,8 @@ fun DatabaseScreen(
     var typeDropdownExpanded by remember { mutableStateOf(false) }
 
     var secDropdownExpanded by remember { mutableStateOf(false) }
-    val secOptions = listOf("Tutte", "WPA", "WPA1", "WPA2", "WPA3")
-    var selectedSecurity by remember { mutableStateOf("") }
+    val secOptions = listOf("Tutte", "WPA3", "WPA2", "WPA", "WEP", "Open")
+    var selectedSecurity by remember { mutableStateOf("Tutte") }
 
     Scaffold(
         modifier = modifier,
