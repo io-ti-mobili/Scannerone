@@ -92,6 +92,9 @@ interface WifiScanDao {
     @Query("SELECT * FROM scan_sessions ORDER BY startTime DESC")
     fun getAllSessions(): Flow<List<ScanSession>>
 
+    @Query("UPDATE scan_sessions SET distanceMetres = :distance WHERE id = :sessionId")
+    suspend fun updateSessionDistance(sessionId: Int, distance: Double)
+
     @Query("""
         SELECT DISTINCT w.* FROM wifi_networks w
         INNER JOIN wifi_scan_records r ON w.id = r.networkId

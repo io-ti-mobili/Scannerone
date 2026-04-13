@@ -10,6 +10,7 @@ import com.example.scannerone.services.GPSService.Position
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.util.ArrayDeque
 
 class WarDrivingServiceImpl(
@@ -130,6 +131,15 @@ class WarDrivingServiceImpl(
                         if (isMoving) {
                             totalDistanceMetres += dist
                             lastPosition = position
+
+
+                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                                try {
+                                    repository.updateSessionDistance(sessionId, totalDistanceMetres)
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Errore aggiornamento distanza in tempo reale: ${e.message}")
+                                }
+                            }
                         }
                     }
                 }
