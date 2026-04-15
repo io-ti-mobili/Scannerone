@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.wifi.ScanResult
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -32,6 +33,9 @@ class WifiForegroundService : Service() {
 
         private val _isRunning = MutableStateFlow(false)
         val isRunning: StateFlow<Boolean> = _isRunning
+
+        private val _lastScanResults = MutableStateFlow<List<ScanResult>>(emptyList())
+        val lastScanResults: StateFlow<List<ScanResult>> = _lastScanResults
     }
 
     private val serviceJob = Job()
@@ -101,6 +105,7 @@ class WifiForegroundService : Service() {
                 warDrivingService.runSession { result ->
                     totalScansCompleted++
                     totalNetworksSaved = result.uniqueNetworksInSession
+                    _lastScanResults.value = result.scanResults
 
                     val distKm = result.totalDistanceMetres / 1000.0
                     Log.d(TAG, "Scan #$totalScansCompleted: ${result.networksSaved}/${result.networksFound} reti | " +
@@ -129,6 +134,7 @@ class WifiForegroundService : Service() {
         serviceJob.cancel()
         isScanning = false
         _isRunning.value = false
+        _lastScanResults.value = emptyList()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
