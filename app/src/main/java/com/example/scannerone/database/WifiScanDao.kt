@@ -41,6 +41,15 @@ interface WifiScanDao {
     @Query("SELECT * FROM wifi_networks WHERE ssid LIKE '%' || :searchQuery || '%' OR bssid LIKE '%' || :searchQuery || '%' ORDER BY id DESC LIMIT 500")
     suspend fun searchNetworks(searchQuery: String): List<WifiNetwork>
 
+    @Query("SELECT * FROM wifi_networks LIMIT :limit OFFSET :offset")
+    fun getNetworksPaged(limit: Int, offset: Int): List<WifiNetwork>
+
+    @Query("SELECT * FROM scan_sessions LIMIT :limit OFFSET :offset")
+    fun getSessionsPaged(limit: Int, offset: Int): List<ScanSession>
+
+    @Query("SELECT * FROM wifi_scan_records LIMIT :limit OFFSET :offset")
+    fun getRecordsPaged(limit: Int, offset: Int): List<WifiScanRecord>
+
     @Query("SELECT COUNT(*) FROM wifi_scan_records WHERE networkId = :networkId")
     suspend fun getScanCountForNetwork(networkId: Int): Int
 
@@ -77,6 +86,55 @@ interface WifiScanDao {
         ORDER BY id DESC LIMIT 500
     """)
     fun searchNetworksAdvanced(ssid: String, bssid: String, address: String, security: String): kotlinx.coroutines.flow.Flow<List<WifiNetwork>>
+
+    @Query("""
+        SELECT * FROM wifi_networks 
+        WHERE (:ssid = '' OR ssid LIKE '%' || :ssid || '%')
+        AND (:bssid = '' OR bssid LIKE '%' || :bssid || '%')
+        AND (:address = '' OR realCity LIKE '%' || :address || '%' OR realStreet LIKE '%' || :address || '%' OR realRegion LIKE '%' || :address || '%')
+        AND (:security = 'Tutte' OR capabilities LIKE '%' || :security || '%')
+        ORDER BY id DESC
+        LIMIT :limit OFFSET :offset
+    """)
+    fun searchNetworksAdvancedPaged(
+        ssid: String,
+        bssid: String,
+        address: String,
+        security: String,
+        limit: Int,
+        offset: Int
+    ): Flow<List<WifiNetwork>>
+
+    @Query("""
+        SELECT COUNT(*) FROM wifi_networks 
+        WHERE (:ssid = '' OR ssid LIKE '%' || :ssid || '%')
+        AND (:bssid = '' OR bssid LIKE '%' || :bssid || '%')
+        AND (:address = '' OR realCity LIKE '%' || :address || '%' OR realStreet LIKE '%' || :address || '%' OR realRegion LIKE '%' || :address || '%')
+        AND (:security = 'Tutte' OR capabilities LIKE '%' || :security || '%')
+    """)
+    fun countNetworksAdvancedFiltered(
+        ssid: String,
+        bssid: String,
+        address: String,
+        security: String
+    ): Flow<Int>
+
+    @Query("""
+        SELECT id FROM wifi_networks 
+        WHERE (:ssid = '' OR ssid LIKE '%' || :ssid || '%')
+        AND (:bssid = '' OR bssid LIKE '%' || :bssid || '%')
+        AND (:address = '' OR realCity LIKE '%' || :address || '%' OR realStreet LIKE '%' || :address || '%' OR realRegion LIKE '%' || :address || '%')
+        AND (:security = 'Tutte' OR capabilities LIKE '%' || :security || '%')
+        ORDER BY id DESC
+        LIMIT 1 OFFSET :offset
+    """)
+    suspend fun getNetworkIdAtFilteredOffset(
+        ssid: String,
+        bssid: String,
+        address: String,
+        security: String,
+        offset: Int
+    ): Int?
 
     @Query("""
     SELECT * FROM wifi_networks 

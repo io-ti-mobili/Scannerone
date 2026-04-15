@@ -1,6 +1,7 @@
 package com.example.scannerone.repository
 
 import com.example.scannerone.database.WifiScanDao
+import com.example.scannerone.entities.ScanSession
 import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.entities.WifiScanRecord
 import com.example.scannerone.locationCalc.LocationCalcStrategy
@@ -12,6 +13,7 @@ import com.example.scannerone.viewmodel.StrategyType
 import com.example.scannerone.services.WarDrivingService.WarDrivingConfig
 import com.example.scannerone.services.nominatimApi.RateLimitedNominatimProxy
 import com.example.scannerone.services.nominatimApi.toWifiNetworkFields
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Il Repository funge da "Cervello" tra i Dati grezzi (DAO/Room) e la logica matematica.
@@ -223,6 +225,79 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     suspend fun getNetworksInBoundingBox(north: Double, south: Double, east: Double, west: Double): List<WifiNetwork> {
         return dao.getNetworksInBoundingBox(north, south, east, west)
     }
+
     fun searchNetworksAdvanced(ssid: String, bssid: String, address: String, security: String) =
         dao.searchNetworksAdvanced(ssid, bssid, address, security)
+
+    fun searchNetworksAdvancedPaged(
+        ssid: String,
+        bssid: String,
+        address: String,
+        security: String,
+        limit: Int,
+        offset: Int
+    ): Flow<List<WifiNetwork>> = dao.searchNetworksAdvancedPaged(
+        ssid = ssid,
+        bssid = bssid,
+        address = address,
+        security = security,
+        limit = limit,
+        offset = offset
+    )
+
+    fun countNetworksAdvancedFiltered(
+        ssid: String,
+        bssid: String,
+        address: String,
+        security: String
+    ): Flow<Int> = dao.countNetworksAdvancedFiltered(
+        ssid = ssid,
+        bssid = bssid,
+        address = address,
+        security = security
+    )
+
+    suspend fun hasFilteredNetworkAtOffset(
+        ssid: String,
+        bssid: String,
+        address: String,
+        security: String,
+        offset: Int
+    ): Boolean = dao.getNetworkIdAtFilteredOffset(
+        ssid = ssid,
+        bssid = bssid,
+        address = address,
+        security = security,
+        offset = offset
+    ) != null
+
+    fun getNetworksSequence(pageSize: Int = 200): Sequence<WifiNetwork> = sequence {
+        var offset = 0
+        while (true) {
+            val page = dao.getNetworksPaged(pageSize, offset)
+            if (page.isEmpty()) break
+            yieldAll(page)
+            offset += pageSize
+        }
+    }
+
+    fun getSessionsSequence(pageSize: Int = 200): Sequence<ScanSession> = sequence {
+        var offset = 0
+        while (true) {
+            val page = dao.getSessionsPaged(pageSize, offset)
+            if (page.isEmpty()) break
+            yieldAll(page)
+            offset += pageSize
+        }
+    }
+
+    fun getRecordsSequence(pageSize: Int = 200): Sequence<WifiScanRecord> = sequence {
+        var offset = 0
+        while (true) {
+            val page = dao.getRecordsPaged(pageSize, offset)
+            if (page.isEmpty()) break
+            yieldAll(page)
+            offset += pageSize
+        }
+    }
 }
