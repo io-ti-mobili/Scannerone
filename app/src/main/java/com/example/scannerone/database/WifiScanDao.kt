@@ -84,4 +84,10 @@ interface WifiScanDao {
     AND realLongitude BETWEEN :west AND :east
 """)
     suspend fun getNetworksInBoundingBox(north: Double, south: Double, east: Double, west: Double): List<WifiNetwork>
+
+    @Query("UPDATE wifi_networks SET ssid = :ssid WHERE bssid = :bssid")
+    suspend fun updateNetworkSsid(bssid: String, ssid: String)
+
+    @Query("DELETE FROM wifi_scan_records WHERE id IN (:ids)")
+    suspend fun deleteScanRecordsByIds(ids: List<Int>)
 }

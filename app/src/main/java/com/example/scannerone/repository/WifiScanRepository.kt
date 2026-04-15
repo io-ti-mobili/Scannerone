@@ -20,6 +20,15 @@ import com.example.scannerone.services.nominatimApi.toWifiNetworkFields
 class WifiScanRepository(private val dao: WifiScanDao) {
 
     private val scansThresholdForCompute = 5
+
+    companion object {
+        /** Max scan records kept per single network. Excess pruned by weight. */
+        const val MAX_RECORDS_PER_NETWORK = 100
+        /** Weight split: accuracy dominates over recency */
+        private const val ACCURACY_WEIGHT = 0.8
+        private const val RECENCY_WEIGHT = 0.2
+    }
+
     /**
      * Deve essere coerente con [WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M]:
      * il wardriving persiste scansioni con accuracy fino a quel valore; un filtro
@@ -129,6 +138,46 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         }
     }
 
+    /**
+     * Calcola peso di un record: più alto = più valore = da tenere.
+     * Accuracy: lower scanAccuracy (meters) = better → inverted and normalized.
+     * Recency: higher timestamp = newer = better → normalized.
+     * Formula: weight = ACCURACY_WEIGHT * accuracyScore + RECENCY_WEIGHT * recencyScore
+     */
+    private fun computeRecordWeight(record: WifiScanRecord, allRecords: List<WifiScanRecord>): Double {
+        val minAcc = allRecords.minOf { it.scanAccuracy }
+        val maxAcc = allRecords.maxOf { it.scanAccuracy }
+        val accRange = (maxAcc - minAcc).toDouble()
+        // Inverted: low accuracy value (precise GPS) → high score
+        val accuracyScore = if (accRange > 0) (1.0 - (record.scanAccuracy - minAcc) / accRange) else 1.0
+
+        val minTs = allRecords.minOf { it.timestamp }
+        val maxTs = allRecords.maxOf { it.timestamp }
+        val tsRange = (maxTs - minTs).toDouble()
+        val recencyScore = if (tsRange > 0) ((record.timestamp - minTs).toDouble() / tsRange) else 1.0
+
+        return ACCURACY_WEIGHT * accuracyScore + RECENCY_WEIGHT * recencyScore
+    }
+
+    /**
+     * Prune scan records for a network down to [MAX_RECORDS_PER_NETWORK].
+     * Keeps records with highest weight (accuracy-heavy + recency).
+     */
+    private suspend fun pruneRecordsIfNeeded(networkId: Int) {
+        val allRecords = dao.getScansForNetwork(networkId)
+        if (allRecords.size <= MAX_RECORDS_PER_NETWORK) return
+
+        // Score every record, sort ascending by weight, delete lowest ones
+        val scored = allRecords.map { it to computeRecordWeight(it, allRecords) }
+        val sorted = scored.sortedBy { it.second }
+        val toDelete = sorted.take(allRecords.size - MAX_RECORDS_PER_NETWORK)
+        val idsToDelete = toDelete.map { it.first.id }
+
+        dao.deleteScanRecordsByIds(idsToDelete)
+
+        println("Pruned ${idsToDelete.size} low-weight records for networkId=$networkId")
+    }
+
     suspend fun insertScannedNetwork(
         bssid: String,
         ssid: String,
@@ -144,7 +193,9 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         
         var internalId = dao.insertNetwork(network).toInt()
         if (internalId == -1) {
+            // BSSID already exists — update ESSID if changed
             internalId = dao.getNetworkIdByBssid(bssid) ?: return
+            dao.updateNetworkSsid(bssid, ssid)
         }
         
         val record = WifiScanRecord(
@@ -157,6 +208,9 @@ class WifiScanRepository(private val dao: WifiScanDao) {
             scanAccuracy = accuracy
         )
         dao.insertScanRecord(record)
+
+        // Prune excess records beyond cap
+        pruneRecordsIfNeeded(internalId)
         
         val count = dao.getScanCountForNetwork(internalId)
         
