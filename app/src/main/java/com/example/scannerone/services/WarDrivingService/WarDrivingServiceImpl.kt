@@ -235,7 +235,8 @@ class WarDrivingServiceImpl(
             networksSaved = savedCount,
             uniqueNetworksInSession = uniqueNetworks,
             position = position,
-            totalDistanceMetres = totalDistanceMetres
+            totalDistanceMetres = totalDistanceMetres,
+            scanResults = scanResults
         )
     }
 }

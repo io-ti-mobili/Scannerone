@@ -3,6 +3,9 @@ package com.example.scannerone.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
@@ -15,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.scannerone.viewmodel.WifiScanViewModel
 import java.util.Locale
+import kotlin.math.ceil
 
 @Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -24,6 +28,12 @@ fun DatabaseScreen(
     onOpenMap: (Double, Double, Int) -> Unit = { _, _, _ -> }
 ) {
     val networks by viewModel.networks.collectAsState()
+    val dbPageSize = viewModel.getDbPageSize()
+    val currentPage by viewModel.currentPage.collectAsState()
+    val hasPreviousPage by viewModel.hasPreviousPage.collectAsState()
+    val canGoNextPage by viewModel.canGoNextPage.collectAsState()
+    val totalFilteredNetworks by viewModel.totalFilteredNetworks.collectAsState()
+    val isPagingBusy by viewModel.isPagingBusy.collectAsState()
     val draftConfig by viewModel.draftConfig.collectAsState()
     val appliedConfig by viewModel.config.collectAsState()
 
@@ -344,6 +354,75 @@ fun DatabaseScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            // 5. BARRA PAGINAZIONE IN FONDO ALLA LISTA
+            item {
+                ElevatedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Pagina ${currentPage + 1}/${ceil(totalFilteredNetworks.toDouble() / dbPageSize).toInt()}",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        if (isPagingBusy) {
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { viewModel.goToPreviousPage() },
+                                enabled = hasPreviousPage && !isPagingBusy,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Precedente")
+                            }
+
+                            Button(
+                                onClick = { viewModel.goToNextPage() },
+                                enabled = canGoNextPage,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Successiva")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ){
+                            Text(
+                                text = "Reti visualizzate: $totalFilteredNetworks",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }
