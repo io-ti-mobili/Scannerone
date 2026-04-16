@@ -99,7 +99,9 @@ class WarDrivingServiceImpl(
         val sessionId = dao.insertSession(ScanSession(startTime = startTime)).toInt()
         Log.d(TAG, "Nuova sessione creata: ID=$sessionId")
 
+        val sessionScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.currentCoroutineContext())
         var totalDistanceMetres = 0.0
+        var lastSavedDistanceMetres = 0.0
         var lastPosition: Position? = null
 
         try {
@@ -127,6 +129,24 @@ class WarDrivingServiceImpl(
                         if (isMoving) {
                             totalDistanceMetres += dist
                             lastPosition = position
+
+                            // Aggiornamento DB per la distanza percorsa (10 metri = 0.01 km)
+                            if (totalDistanceMetres - lastSavedDistanceMetres >= 10.0) {
+                                lastSavedDistanceMetres = totalDistanceMetres
+                                sessionScope.launch {
+                                    try {
+                                        dao.updateSession(
+                                            ScanSession(
+                                                id = sessionId,
+                                                startTime = startTime,
+                                                distanceMetres = totalDistanceMetres
+                                            )
+                                        )
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Errore update distanza DB: ${e.message}")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
