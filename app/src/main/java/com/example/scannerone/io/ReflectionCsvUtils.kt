@@ -25,23 +25,28 @@ object ReflectionCsvUtils {
             ?: error("${kClass.simpleName} non ha un primary constructor")
         val props = kClass.memberProperties.associateBy { it.name }
 
-        val writer = output.bufferedWriter(Charsets.UTF_8)
-
-        // Header
-        writer.write(params.joinToString(",") { it.name!! })
-        writer.newLine()
-
-        // Righe
-        items.forEach { item ->
-            val row = params.joinToString(",") { param ->
-                val value = props[param.name]?.get(item)
-                escapeCsvValue(value?.toString() ?: "")
-            }
-            writer.write(row)
-            writer.newLine()
+        // Wrapper non-chiudente: BufferedWriter.close() flushа e chiude questo wrapper,
+        // ma NON propaga la chiusura al ZipOutputStream sottostante.
+        val nonClosingOutput = object : java.io.FilterOutputStream(output) {
+            override fun close() { /* intentionally empty — chiude il chiamante */ }
         }
-        writer.flush()
-        // Non chiudiamo il writer: chiuderebbe il ZipOutputStream sottostante
+
+        nonClosingOutput.bufferedWriter(Charsets.UTF_8).use { writer ->
+            // Header
+            writer.write(params.joinToString(",") { it.name!! })
+            writer.newLine()
+
+            // Righe
+            items.forEach { item ->
+                val row = params.joinToString(",") { param ->
+                    val value = props[param.name]?.get(item)
+                    escapeCsvValue(value?.toString() ?: "")
+                }
+                writer.write(row)
+                writer.newLine()
+            }
+        }
+        // BufferedWriter.close() =  flush + chiude il wrapper (no-op) → ZipOutputStream intatto
     }
 
     /**

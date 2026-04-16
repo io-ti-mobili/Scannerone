@@ -307,28 +307,75 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     suspend fun deleteAllSessions() = dao.deleteAllSessions()
     suspend fun deleteAllNetworks() = dao.deleteAllNetworks()
 
-    suspend fun insertNetworks(networks: List<WifiNetwork>) = dao.insertNetworks(networks)
-    suspend fun insertSessions(sessions: List<ScanSession>) = dao.insertSessions(sessions)
     suspend fun insertRecords(recordList: List<WifiScanRecord>) {
         dao.insertRecords(recordList)
     }
 
     /**
-     * Import atomico completo. Garantisce che se un file è corrotto (es. header scorretto o record fallito),
-     * viene fatto il rollback in automatico scartando tutti i delete e tenendo fissa la coerenza.
+     * Import con merge intelligente — non cancella i dati esistenti.
+     *
+     * Strategia:
+     * - Networks: dedup per BSSID. Se il BSSID esiste già → riusa l'ID esistente.
+     *             Altrimenti → inserisci come nuova rete (Room genera nuovo ID).
+     * - Sessions: sempre inserite come nuove (id=0 → Room genera nuovo ID).
+     * - Records:  rimappati con i nuovi networkId e sessionId, inseriti come nuovi (id=0).
+     *
+     * Tutto avviene in una singola transazione Room → rollback automatico su qualsiasi errore.
      */
-    suspend fun importFullBundleAtomic(bundle: com.example.scannerone.io.ExportBundle, db: com.example.scannerone.database.AppDatabase) {
+    suspend fun importMergeBundle(
+        bundle: com.example.scannerone.io.ExportBundle,
+        db: com.example.scannerone.database.AppDatabase
+    ) {
         androidx.room.withTransaction(db) {
-            deleteAllRecords()
-            deleteAllSessions()
-            deleteAllNetworks()
 
-            bundle.networks?.chunked(200)?.forEach { dao.insertNetworks(it) }
+            // ---- Step 1: Networks ----
+            // Mappa: id nel file importato → id reale nel DB dopo il merge
+            val networkIdMap = mutableMapOf<Int, Int>()
+
+            val networks = bundle.networks
                 ?: throw IllegalArgumentException("Networks mancanti nel bundle")
-            bundle.sessions?.chunked(200)?.forEach { dao.insertSessions(it) }
+
+            networks.forEach { importedNetwork ->
+                // Forza id=0 così Room non prova a inserire con l'ID del file
+                val rowId = dao.insertNetwork(importedNetwork.copy(id = 0))
+                val actualId = if (rowId == -1L) {
+                    // BSSID già presente → recupera l'ID esistente
+                    dao.getNetworkIdByBssid(importedNetwork.bssid)
+                        ?: error("BSSID ${importedNetwork.bssid}: inserimento ignorato ma ID non trovato")
+                } else {
+                    rowId.toInt()
+                }
+                networkIdMap[importedNetwork.id] = actualId
+            }
+
+            // ---- Step 2: Sessions ----
+            // Sempre nuove: non esiste una chiave naturale per le sessioni
+            val sessionIdMap = mutableMapOf<Int, Int>()
+
+            val sessions = bundle.sessions
                 ?: throw IllegalArgumentException("Sessions mancanti nel bundle")
-            bundle.records?.chunked(200)?.forEach { dao.insertRecords(it) }
+
+            sessions.forEach { importedSession ->
+                val newId = dao.insertSession(importedSession.copy(id = 0))
+                sessionIdMap[importedSession.id] = newId.toInt()
+            }
+
+            // ---- Step 3: Records ----
+            // Rimappa networkId e sessionId; id=0 → Room genera nuovo ID
+            val records = bundle.records
                 ?: throw IllegalArgumentException("Records mancanti nel bundle")
+
+            records.chunked(200).forEach { chunk ->
+                val remapped = chunk.map { record ->
+                    record.copy(
+                        id        = 0,
+                        networkId = networkIdMap[record.networkId]
+                            ?: error("networkId ${record.networkId} non presente nella mappa — bundle corrotto?"),
+                        sessionId = record.sessionId?.let { sessionIdMap[it] }
+                    )
+                }
+                dao.insertRecords(remapped)
+            }
         }
     }
 }

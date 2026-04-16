@@ -324,9 +324,9 @@ fun SettingsScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "⚠️ L'import sovrascriverà tutti i dati esistenti nel database.",
+                        "ℹ️ L'import aggiunge i dati a quelli già presenti. Le reti con lo stesso BSSID non vengono duplicate.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             },

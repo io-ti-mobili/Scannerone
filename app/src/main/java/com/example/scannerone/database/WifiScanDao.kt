@@ -160,13 +160,7 @@ interface WifiScanDao {
     @Query("DELETE FROM wifi_networks")
     suspend fun deleteAllNetworks()
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertNetworks(networks: List<WifiNetwork>)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSessions(sessions: List<ScanSession>)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertRecords(records: List<WifiScanRecord>)
 }
 

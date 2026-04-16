@@ -63,11 +63,9 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
     }
 
     /**
-     * Import streaming dall'URI scelto dall'utente.
-     * Per CSV: estrae entries zip in cacheDir (file temp su disco), poi parsa lazy.
-     * Per JSON: estrae array in file JSONL temp su cacheDir, poi parsa lazy.
-     * In entrambi i casi: al massimo un chunk da 200 oggetti in RAM durante l'insert.
-     * File temp cancellati automaticamente dopo il consumo di ogni Sequence.
+     * Import con merge: legge l'InputStream, rimappa gli ID, aggiunge i dati
+     * a quelli già presenti nel DB senza cancellarli.
+     * Dedup BSSID per le reti; sessioni e record sempre come nuovi.
      */
     fun onImportClick(uri: Uri, formato: ExportFormat) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -82,7 +80,7 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
                 val bundle = SerializerFactory.get(formato).import(input, cacheDir)
 
                 val db = AppDatabase.getDatabase(getApplication())
-                repo.importFullBundleAtomic(bundle, db)
+                repo.importMergeBundle(bundle, db)
 
                 _importState.value = ImportState.Success
             } catch (e: Exception) {
