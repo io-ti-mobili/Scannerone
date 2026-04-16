@@ -148,4 +148,25 @@ interface WifiScanDao {
 
     @Query("DELETE FROM wifi_scan_records WHERE id IN (:ids)")
     suspend fun deleteScanRecordsByIds(ids: List<Int>)
+
+    // ---- Export/Import ----
+
+    @Query("DELETE FROM wifi_scan_records")
+    suspend fun deleteAllRecords()
+
+    @Query("DELETE FROM scan_sessions")
+    suspend fun deleteAllSessions()
+
+    @Query("DELETE FROM wifi_networks")
+    suspend fun deleteAllNetworks()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNetworks(networks: List<WifiNetwork>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSessions(sessions: List<ScanSession>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRecords(records: List<WifiScanRecord>)
 }
+

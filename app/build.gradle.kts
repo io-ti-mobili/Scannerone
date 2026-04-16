@@ -66,6 +66,13 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
+    // Jackson Streaming (import JSON senza caricare tutto in RAM)
+    implementation("com.fasterxml.jackson.core:jackson-core:2.17.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
+
+    // Kotlin Reflection (colonne CSV dinamiche via data class)
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.10")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

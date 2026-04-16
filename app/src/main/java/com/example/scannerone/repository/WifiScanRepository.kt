@@ -300,4 +300,35 @@ class WifiScanRepository(private val dao: WifiScanDao) {
             offset += pageSize
         }
     }
+
+    // ---- Export/Import ----
+
+    suspend fun deleteAllRecords() = dao.deleteAllRecords()
+    suspend fun deleteAllSessions() = dao.deleteAllSessions()
+    suspend fun deleteAllNetworks() = dao.deleteAllNetworks()
+
+    suspend fun insertNetworks(networks: List<WifiNetwork>) = dao.insertNetworks(networks)
+    suspend fun insertSessions(sessions: List<ScanSession>) = dao.insertSessions(sessions)
+    suspend fun insertRecords(recordList: List<WifiScanRecord>) {
+        dao.insertRecords(recordList)
+    }
+
+    /**
+     * Import atomico completo. Garantisce che se un file è corrotto (es. header scorretto o record fallito),
+     * viene fatto il rollback in automatico scartando tutti i delete e tenendo fissa la coerenza.
+     */
+    suspend fun importFullBundleAtomic(bundle: com.example.scannerone.io.ExportBundle, db: com.example.scannerone.database.AppDatabase) {
+        androidx.room.withTransaction(db) {
+            deleteAllRecords()
+            deleteAllSessions()
+            deleteAllNetworks()
+
+            bundle.networks?.chunked(200)?.forEach { dao.insertNetworks(it) }
+                ?: throw IllegalArgumentException("Networks mancanti nel bundle")
+            bundle.sessions?.chunked(200)?.forEach { dao.insertSessions(it) }
+                ?: throw IllegalArgumentException("Sessions mancanti nel bundle")
+            bundle.records?.chunked(200)?.forEach { dao.insertRecords(it) }
+                ?: throw IllegalArgumentException("Records mancanti nel bundle")
+        }
+    }
 }
