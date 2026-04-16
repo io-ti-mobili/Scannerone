@@ -70,7 +70,7 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun applyFilters(address: String, ssid: String, bssid: String, security: String) {
-        _searchFilters.value = SearchFilters(ssid, bssid, address, security)
+        _searchFilters.value = SearchFilters(ssid.trim(), bssid.trim(), address.trim(), security.trim())
         _currentPage.value = 0
         _isLastPageKnown.value = false
     }
