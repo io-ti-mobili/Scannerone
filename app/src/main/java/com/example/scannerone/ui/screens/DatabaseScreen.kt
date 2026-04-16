@@ -42,8 +42,8 @@ fun DatabaseScreen(
     var searchBssid by remember { mutableStateOf("") }
 
     var secDropdownExpanded by remember { mutableStateOf(false) }
-    val secOptions = listOf("Tutte", "WPA", "WPA1", "WPA2", "WPA3")
-    var selectedSecurity by remember { mutableStateOf(secOptions[0]) }
+    val secOptions = listOf("Tutte", "WPA3", "WPA2", "WPA", "WEP", "Open")
+    var selectedSecurity by remember { mutableStateOf("Tutte") }
 
     Scaffold(
         modifier = modifier,
@@ -174,6 +174,7 @@ fun DatabaseScreen(
                             value = selectedSecurity,
                             onValueChange = {},
                             readOnly = true,
+                            label = { Text("Sicurezza") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = secDropdownExpanded) },
                             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                         )
@@ -220,25 +221,6 @@ fun DatabaseScreen(
                 }
             }
 
-            // 3. BLOCCO BOTTONI ESPORTAZIONE (Scorrimento Orizzontale)
-            item {
-                androidx.compose.foundation.lazy.LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item { Button(onClick = { }) { Text("Esporta CSV/KML Attuale") } }
-                    item { Button(onClick = { }) { Text("Esporta DB Completo (CSV)") } }
-                    item { Button(onClick = { }) { Text("Backup Database") } }
-                    item { Button(onClick = { }) { Text("Importa Reti Osservate") } }
-                    item { Button(onClick = { }) { Text("Salva DB in App") } }
-                    item {
-                        Button(
-                            onClick = { },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) { Text("Cancella DB") }
-                    }
-                }
-            }
 
             // 4. LISTA DELLE RETI (Risultati della ricerca)
             if (networks.isEmpty()) {
