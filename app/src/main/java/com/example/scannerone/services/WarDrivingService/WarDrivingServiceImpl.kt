@@ -104,6 +104,7 @@ class WarDrivingServiceImpl(
         var totalDistanceMetres = 0.0
         var lastSavedDistanceMetres = 0.0
         var lastPosition: Position? = null
+        var uniqueNetworksSeen = 0   // reti distinte viste — aggiornato dopo ogni scan, non dal pruning
 
         try {
             gpsService.startContinuousUpdates { position ->
@@ -140,7 +141,8 @@ class WarDrivingServiceImpl(
                                             ScanSession(
                                                 id = sessionId,
                                                 startTime = startTime,
-                                                distanceMetres = totalDistanceMetres
+                                                distanceMetres = totalDistanceMetres,
+                                                uniqueNetworksSeen = uniqueNetworksSeen
                                             )
                                         )
                                     } catch (e: Exception) {
@@ -181,6 +183,7 @@ class WarDrivingServiceImpl(
                 val cycleStartTime = System.currentTimeMillis()
                 try {
                     val result = performScan(sessionId, totalDistanceMetres)
+                    uniqueNetworksSeen = result.uniqueNetworksInSession
                     onResult(result)
                 } catch (e: Exception) {
                     Log.e(TAG, "Errore durante la scansione: ${e.message}", e)
@@ -202,7 +205,8 @@ class WarDrivingServiceImpl(
                             id = sessionId,
                             startTime = startTime,
                             endTime = System.currentTimeMillis(),
-                            distanceMetres = totalDistanceMetres
+                            distanceMetres = totalDistanceMetres,
+                            uniqueNetworksSeen = uniqueNetworksSeen
                         )
                     )
                 }

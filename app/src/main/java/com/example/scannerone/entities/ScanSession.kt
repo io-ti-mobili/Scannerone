@@ -8,5 +8,6 @@ data class ScanSession(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val startTime: Long,
     val endTime: Long? = null,
-    val distanceMetres: Double = 0.0
+    val distanceMetres: Double = 0.0,
+    val uniqueNetworksSeen: Int = 0  
 )
