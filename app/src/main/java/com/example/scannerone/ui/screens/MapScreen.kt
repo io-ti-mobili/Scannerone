@@ -73,6 +73,7 @@ import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
 import org.osmdroid.views.overlay.infowindow.InfoWindow
+import kotlin.random.Random
 
 
 @Composable
@@ -302,11 +303,15 @@ fun MapContent(
                     for (rete in visibleNetworks) {
                         val lat = rete.realLatitude ?: 0.0
                         val lon = rete.realLongitude ?: 0.0
-
                         if (lat != 0.0 && lon != 0.0) {
+                            val offsetLat = (Random.nextDouble() - 0.5) * 0.0001
+                            val offsetLon = (Random.nextDouble() - 0.5) * 0.0001
+
+                            val displayLat = lat + offsetLat
+                            val displayLon = lon + offsetLon
                             val startMarker = Marker(view).apply {
                                 icon = ContextCompat.getDrawable(view.context, R.drawable.wifi_icon)
-                                position = GeoPoint(lat, lon)
+                                position = GeoPoint(displayLat, displayLon)
                                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                 title = rete.ssid
                                 snippet = rete.bssid
