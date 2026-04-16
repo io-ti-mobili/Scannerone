@@ -10,6 +10,7 @@ import com.example.scannerone.services.GPSService.Position
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.util.ArrayDeque
 
 class WarDrivingServiceImpl(
