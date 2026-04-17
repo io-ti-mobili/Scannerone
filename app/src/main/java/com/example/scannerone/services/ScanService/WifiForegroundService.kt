@@ -14,8 +14,8 @@ import androidx.core.app.NotificationCompat
 import com.example.scannerone.Services.ScanService.WifiScanServiceImpl
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.repository.WifiScanRepository
-import com.example.scannerone.services.GPSService.LocationManagerGPSServiceImpl
-import com.example.scannerone.services.WarDrivingService.WarDrivingServiceImpl
+import com.example.scannerone.services.GPSService.LocationManagerGPSServiceImplV2
+import com.example.scannerone.services.WarDrivingService.WarDrivingServiceImplWiggle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -77,8 +77,8 @@ class WifiForegroundService : Service() {
             val dao = db.wifiScanDao()
             val repository = WifiScanRepository(dao)
             val scanService = WifiScanServiceImpl(applicationContext)
-            val gpsService = LocationManagerGPSServiceImpl(applicationContext)
-            val warDrivingService = WarDrivingServiceImpl(scanService, gpsService, repository, dao)
+            val gpsService = LocationManagerGPSServiceImplV2(applicationContext)
+            val warDrivingService = WarDrivingServiceImplWiggle(scanService, gpsService, repository, dao)
 
 
             // Attendi attivamente che i servizi siano abilitati
