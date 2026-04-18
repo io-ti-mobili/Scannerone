@@ -64,6 +64,20 @@ interface WifiScanDao {
     @Query("SELECT COUNT(*) FROM wifi_scan_records")
     fun getTotalScansCount(): Flow<Int>
 
+    @Query("SELECT SUM(distanceMetres) FROM scan_sessions")
+    fun getTotalDistance(): Flow<Double?>
+
+    @Query("SELECT SUM(endTime - startTime) FROM scan_sessions WHERE endTime IS NOT NULL")
+    fun getTotalTime(): Flow<Long?>
+
+    @Query("SELECT MIN(timestamp) FROM wifi_scan_records GROUP BY networkId")
+    fun getNetworkDiscoveryTimes(): Flow<List<Long>>
+
+    @Query("SELECT timestamp FROM wifi_scan_records")
+    fun getAllScanTimes(): Flow<List<Long>>
+
+    @Query("SELECT sessionId FROM wifi_scan_records WHERE isFirstDiscovery = 1 AND sessionId IS NOT NULL GROUP BY sessionId ORDER BY COUNT(id) DESC LIMIT 1")
+    fun getSessionIdWithMostUniqueNetworks(): Flow<Int?>
 
     @Query("SELECT * FROM wifi_scan_records ORDER BY timestamp DESC LIMIT 500")
     fun getLastScans(): Flow<List<WifiScanRecord>>

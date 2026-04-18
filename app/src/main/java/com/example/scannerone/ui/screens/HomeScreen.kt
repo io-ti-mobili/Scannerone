@@ -5,26 +5,39 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.WifiFind
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.scannerone.viewmodel.WifiScanViewModel
+import com.example.scannerone.viewmodel.DashboardViewModel
+import com.example.scannerone.viewmodel.TimeFilter
+import com.example.scannerone.ui.components.*
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: WifiScanViewModel = viewModel()
+    viewModel: DashboardViewModel = viewModel()
 ) {
     val totalNets by viewModel.totalNetworksCount.collectAsState()
     val totalScans by viewModel.totalScansCount.collectAsState()
-    val sessionStats by viewModel.lastSessionStats.collectAsState()
+    val totalDistance by viewModel.totalDistance.collectAsState()
+    val totalTime by viewModel.totalTime.collectAsState()
+
+    val hallOfFame by viewModel.hallOfFame.collectAsState()
+    val trendStats by viewModel.trendStats.collectAsState()
+    val timeFilter by viewModel.timeFilter.collectAsState()
 
     Column(
         modifier = modifier
@@ -39,79 +52,180 @@ fun HomeScreen(
             fontWeight = FontWeight.Bold
         )
 
-        // --- SEZIONE TOTALI ---
-        Text("Statistiche Globali", style = MaterialTheme.typography.titleMedium)
+        // --- SEZIONE NUMERI IN EVIDENZA ---
+        Text("Numeri in evidenza", style = MaterialTheme.typography.titleMedium)
+        
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
-                title = "Reti Totali",
+                title = "Reti Uniche",
                 value = "$totalNets",
                 icon = Icons.Default.Wifi,
                 modifier = Modifier.weight(1f)
             )
             DashboardCard(
-                title = "Scansioni",
+                title = "Distanza",
+                value = String.format(Locale.getDefault(), "%.2f km", totalDistance / 1000.0),
+                icon = Icons.Default.Route,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            DashboardCard(
+                title = "Tempo Wardriving",
+                value = formatTime(totalTime),
+                icon = Icons.Default.Timer,
+                modifier = Modifier.weight(1f)
+            )
+            DashboardCard(
+                title = "Scansioni Salvate",
                 value = "$totalScans",
                 icon = Icons.Default.Analytics,
                 modifier = Modifier.weight(1f)
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // --- SEZIONE ULTIMA SESSIONE ---
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.History, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Ultima Sessione Activa", style = MaterialTheme.typography.titleMedium)
-                }
+        // --- SEZIONE RECORD (HALL OF FAME) ---
+        Text("I Tuoi Migliori Record", style = MaterialTheme.typography.titleMedium)
 
-                Spacer(Modifier.height(12.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            val longest = hallOfFame.longestSession
+            val durationTxt = longest?.let {
+                val durationMs = (it.endTime ?: System.currentTimeMillis()) - it.startTime
+                formatTime(durationMs)
+            } ?: "-"
+            val date1 = longest?.startTime?.let { viewModel.formatTimestamp(it) } ?: ""
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    SessionItem("Reti trovate", "${sessionStats.uniqueNetworks}")
-                    SessionItem("Punti rilevati", "${sessionStats.totalScans}")
-                    SessionItem("Segnale medio", "${sessionStats.avgRssi} dBm")
+            DashboardCard(
+                title = "Sessione più lunga",
+                value = durationTxt,
+                subtitle = "In data: $date1",
+                icon = Icons.Default.Timer,
+                modifier = Modifier.weight(1f),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                iconColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            val mostDist = hallOfFame.mostDistanceSession
+            val distTxt = mostDist?.let { String.format(Locale.getDefault(), "%.2f km", it.distanceMetres / 1000.0) } ?: "-"
+            val date2 = mostDist?.startTime?.let { viewModel.formatTimestamp(it) } ?: ""
+
+            DashboardCard(
+                title = "Sessione camminato di più",
+                value = distTxt,
+                subtitle = "In data: $date2",
+                icon = Icons.Default.DirectionsWalk,
+                modifier = Modifier.weight(1f),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                iconColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+        
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            val mostUniq = hallOfFame.mostUniquesSession
+            val date3 = mostUniq?.startTime?.let { viewModel.formatTimestamp(it) } ?: ""
+            // Non abbiamo pre-calcolato quante reti uniche ha avuto, mettiamolo descrittivo.
+            DashboardCard(
+                title = "Miglior sessione per reti uniche",
+                value = mostUniq?.let { "Sessione #${it.id}" } ?: "-",
+                subtitle = "In data: $date3",
+                icon = Icons.Default.WifiFind,
+                modifier = Modifier.weight(1f),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                iconColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            
+            Spacer(modifier = Modifier.weight(1f)) // "Come se ci fosse un quarto elemento"
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // --- SEZIONE GRAFICO LINEARE ---
+        val scanTrendStats by viewModel.scanTrendStats.collectAsState()
+        
+        var expandedMenu1 by remember { mutableStateOf(false) }
+        ChartCard(
+            title = "Andamento Scoperta",
+            action = {
+                Box {
+                    OutlinedButton(
+                        onClick = { expandedMenu1 = true },
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.defaultMinSize(minHeight = 32.dp)
+                    ) {
+                        Text(timeFilter.label, fontSize = 12.sp)
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                    DropdownMenu(
+                        expanded = expandedMenu1,
+                        onDismissRequest = { expandedMenu1 = false }
+                    ) {
+                        TimeFilter.entries.forEach { filter ->
+                            DropdownMenuItem(
+                                text = { Text(filter.label, fontSize = 12.sp) },
+                                onClick = { 
+                                    viewModel.setTimeFilter(filter)
+                                    expandedMenu1 = false 
+                                }
+                            )
+                        }
+                    }
                 }
             }
-        }
-
-        // Bottone rapido per andare allo scanner (se vuoi aggiungerlo qui)
-        Button(
-            onClick = { /* Navigazione verso WifiScreen */ },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = MaterialTheme.shapes.medium
         ) {
-            Text("AVVIA NUOVA SCANSIONE")
+            LineChart(data = trendStats, lineColor = MaterialTheme.colorScheme.primary)
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        var expandedMenu2 by remember { mutableStateOf(false) }
+        ChartCard(
+            title = "Volume Scansioni",
+            action = {
+                Box {
+                    OutlinedButton(
+                        onClick = { expandedMenu2 = true },
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.defaultMinSize(minHeight = 32.dp)
+                    ) {
+                        Text(timeFilter.label, fontSize = 12.sp)
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                    DropdownMenu(
+                        expanded = expandedMenu2,
+                        onDismissRequest = { expandedMenu2 = false }
+                    ) {
+                        TimeFilter.entries.forEach { filter ->
+                            DropdownMenuItem(
+                                text = { Text(filter.label, fontSize = 12.sp) },
+                                onClick = { 
+                                    viewModel.setTimeFilter(filter)
+                                    expandedMenu2 = false 
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        ) {
+            LineChart(data = scanTrendStats, lineColor = MaterialTheme.colorScheme.secondary)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
-@Composable
-fun DashboardCard(title: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(8.dp))
-            Text(title, style = MaterialTheme.typography.labelMedium)
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        }
-    }
-}
 
-@Composable
-fun SessionItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text(label, style = MaterialTheme.typography.bodySmall)
-    }
+fun formatTime(ms: Long): String {
+    val durationMin = ms / 60000
+    val h = durationMin / 60
+    val m = durationMin % 60
+    return if (h > 0) "${h}h ${m}m" else "${m}m"
 }

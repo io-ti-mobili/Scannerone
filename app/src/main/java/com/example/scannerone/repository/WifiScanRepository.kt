@@ -9,6 +9,7 @@ import com.example.scannerone.locationCalc.TrilaterationCalcStrategy
 import com.example.scannerone.locationCalc.WeightedCentroidCalcStrategy
 import com.example.scannerone.viewmodel.StrategyConfig
 import com.example.scannerone.viewmodel.StrategyType
+import com.example.scannerone.utils.categorizeNetwork
 import com.example.scannerone.services.nominatimApi.RateLimitedNominatimProxy
 import com.example.scannerone.services.nominatimApi.toWifiNetworkFields
 
@@ -64,6 +65,8 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         }
     }
 
+    private val MAX_SCANS_FOR_COMPUTE = 50
+
     private suspend fun recalculateNetwork(networkId: Int) {
         val history = dao.getScansForNetwork(networkId)
         
@@ -71,8 +74,13 @@ class WifiScanRepository(private val dao: WifiScanDao) {
             it.scanAccuracy <= maxAcceptedAccuracy && it.rssi >= MIN_RSSI 
         }
         
-        if (highQualityScans.isNotEmpty()) {
-            val newPosition = activeStrategy.calculatePosition(highQualityScans)
+        // Mantieni tutta la history nel DB, ma seleziona i migliori "N" per il calcolo
+        val bestScansForCompute = highQualityScans
+            .sortedByDescending { it.timestamp.toFloat() / (it.scanAccuracy + 1f) }
+            .take(MAX_SCANS_FOR_COMPUTE)
+        
+        if (bestScansForCompute.isNotEmpty()) {
+            val newPosition = activeStrategy.calculatePosition(bestScansForCompute)
             if (newPosition != null) {
                 dao.updateNetworkLocation(
                     networkId = networkId,
@@ -123,9 +131,11 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         accuracy: Float,
         sessionId: Int? = null
     ) {
-        val network = WifiNetwork(bssid = bssid, ssid = ssid, capabilities = capabilities, frequency = frequency)
+        val cat = categorizeNetwork(ssid).name
+        val network = WifiNetwork(bssid = bssid, ssid = ssid, capabilities = capabilities, frequency = frequency, category = cat)
         
         var internalId = dao.insertNetwork(network).toInt()
+        val isFirst = internalId != -1
         if (internalId == -1) {
             internalId = dao.getNetworkIdByBssid(bssid) ?: return
         }
@@ -137,7 +147,8 @@ class WifiScanRepository(private val dao: WifiScanDao) {
             rssi = rssi,
             scanLatitude = lat,
             scanLongitude = lon,
-            scanAccuracy = accuracy
+            scanAccuracy = accuracy,
+            isFirstDiscovery = isFirst
         )
         dao.insertScanRecord(record)
         
@@ -158,9 +169,12 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     fun searchNetworksAdvanced(ssid: String, bssid: String, address: String, security: String) =
         dao.searchNetworksAdvanced(ssid, bssid, address, security)
     fun getTotalNetworksCount() = dao.getTotalNetworksCount()
-
     fun getTotalScansCount() = dao.getTotalScansCount()
-
+    fun getTotalDistance() = dao.getTotalDistance()
+    fun getTotalTime() = dao.getTotalTime()
+    fun getNetworkDiscoveryTimes() = dao.getNetworkDiscoveryTimes()
+    fun getAllScanTimes() = dao.getAllScanTimes()
+    fun getSessionIdWithMostUniqueNetworks() = dao.getSessionIdWithMostUniqueNetworks()
 
     fun getAllSessions() = dao.getAllSessions()
     fun getNetworksForSession(sessionId: Int?) = dao.getNetworksForSession(sessionId)

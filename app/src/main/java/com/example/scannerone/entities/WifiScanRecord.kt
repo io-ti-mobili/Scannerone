@@ -33,5 +33,6 @@ data class WifiScanRecord(
     val rssi: Int,
     val scanLatitude: Double,
     val scanLongitude: Double,
-    val scanAccuracy: Float
+    val scanAccuracy: Float,
+    val isFirstDiscovery: Boolean = false
 )
