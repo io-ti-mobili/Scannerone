@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.scannerone.viewmodel.WifiScanViewModel
 import com.example.scannerone.viewmodel.StrategyType
@@ -24,6 +25,15 @@ fun SettingsScreen(
     var exportScans by remember { mutableStateOf(true) }
     var exportNetworks by remember { mutableStateOf(true) }
     var exportSessions by remember { mutableStateOf(false) }
+
+    // ---- Logica Lingua e Tema ----
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val systemLang = context.resources.configuration.locales[0].language
+    val initialLang = if (systemLang == "it") "Italiano" else "English"
+    val systemInDark = androidx.compose.foundation.isSystemInDarkTheme()
+    
+    var selectedLanguage by remember { mutableStateOf(initialLang) }
+    var selectedTheme by remember { mutableStateOf("Sistema") }
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         // ---- Configurazione Motore Matematico ----
@@ -90,6 +100,72 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Applica e Ricalcola DB")
+                }
+            }
+        }
+
+        // ---- Personalizzazione (Lingua e Tema) ----
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    "Personalizzazione (fanno schifo vabbè)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Selettore Lingua
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Lingua App", style = MaterialTheme.typography.bodyMedium)
+                    Row {
+                        FilterChip(
+                            selected = selectedLanguage == "Italiano",
+                            onClick = { /* Non fa nulla */ },
+                            label = { Text("Italiano") }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        FilterChip(
+                            selected = selectedLanguage == "English",
+                            onClick = { /* Non fa nulla */ },
+                            label = { Text("English") }
+                        )
+                    }
+                }
+
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+
+                // Selettore Tema
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Tema App", style = MaterialTheme.typography.bodyMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        FilterChip(
+                            selected = selectedTheme == "Chiaro",
+                            onClick = { /* Non fa nulla */ },
+                            label = { Text("Chiaro", fontSize = 10.sp) }
+                        )
+                        FilterChip(
+                            selected = selectedTheme == "Scuro",
+                            onClick = { /* Non fa nulla */ },
+                            label = { Text("Scuro", fontSize = 10.sp) }
+                        )
+                        FilterChip(
+                            selected = selectedTheme == "Sistema",
+                            onClick = { /* Non fa nulla */ },
+                            label = { Text("Sistema", fontSize = 10.sp) }
+                        )
+                    }
                 }
             }
         }
