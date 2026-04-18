@@ -1,6 +1,7 @@
 package com.example.scannerone.repository
 
 import com.example.scannerone.database.WifiScanDao
+import com.example.scannerone.entities.ScanSession
 import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.entities.WifiScanRecord
 import com.example.scannerone.locationCalc.LocationCalcStrategy
@@ -12,6 +13,11 @@ import com.example.scannerone.viewmodel.StrategyType
 import com.example.scannerone.utils.categorizeNetwork
 import com.example.scannerone.services.nominatimApi.RateLimitedNominatimProxy
 import com.example.scannerone.services.nominatimApi.toWifiNetworkFields
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.Channel
 
 /**
  * Il Repository funge da "Cervello" tra i Dati grezzi (DAO/Room) e la logica matematica.
@@ -22,6 +28,9 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     private val scansThresholdForCompute = 5
     private val maxAcceptedAccuracy = 20.0f
     private val MIN_RSSI = -85
+
+    // Scope dedicato per task di background (ricalcolo e geocoding)
+    private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     var config = StrategyConfig()
         set(value) {
@@ -31,8 +40,18 @@ class WifiScanRepository(private val dao: WifiScanDao) {
 
     private var activeStrategy: LocationCalcStrategy = WeightedCentroidCalcStrategy()
 
+    // Coda di elaborazione per processare le reti una alla volta
+    private val calculationChannel = Channel<Int>(Channel.UNLIMITED)
+
     init {
         updateActiveStrategy()
+        
+        // Avviamo il worker che consuma la coda in modo sequenziale
+        repositoryScope.launch {
+            for (networkId in calculationChannel) {
+                recalculateNetwork(networkId)
+            }
+        }
     }
 
 
@@ -129,10 +148,37 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         lat: Double,
         lon: Double,
         accuracy: Float,
-        sessionId: Int? = null
+        sessionId: Int? = null,
+        forcedTimestamp: Long? = null
     ) {
         val cat = categorizeNetwork(ssid).name
-        val network = WifiNetwork(bssid = bssid, ssid = ssid, capabilities = capabilities, frequency = frequency, category = cat)
+        
+        val capUpper = capabilities.uppercase()
+        val securityStr = when {
+            capUpper.contains("WPA3") || capUpper.contains("OWE") || capUpper.contains("SAE") -> "WPA3"
+            capUpper.contains("WPA2") -> "WPA2"
+            capUpper.contains("WPA-") || capUpper.contains("WPA1") -> "WPA"
+            capUpper.contains("WEP") -> "WEP"
+            capUpper.isEmpty() || capUpper == "[ESS]" || capUpper.contains("OPEN") || capUpper.contains("NONE") -> "Open"
+            else -> "Altro"
+        }
+
+        val band = when {
+            frequency in 2400..2500 -> 2.4f
+            frequency in 5000..5900 -> 5.0f
+            frequency > 5900 -> 6.0f
+            else -> 0.0f
+        }
+        
+        val network = WifiNetwork(
+            bssid = bssid, 
+            ssid = ssid, 
+            capabilities = capabilities, 
+            frequency = frequency, 
+            category = cat,
+            security = securityStr,
+            frequencyBand = band
+        )
         
         var internalId = dao.insertNetwork(network).toInt()
         val isFirst = internalId != -1
@@ -143,7 +189,7 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         val record = WifiScanRecord(
             networkId = internalId,
             sessionId = sessionId,
-            timestamp = System.currentTimeMillis(),
+            timestamp = forcedTimestamp ?: System.currentTimeMillis(),
             rssi = rssi,
             scanLatitude = lat,
             scanLongitude = lon,
@@ -155,14 +201,14 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         val count = dao.getScanCountForNetwork(internalId)
         
         if (count == 1 || (count > 0 && count % scansThresholdForCompute == 0)) {
-            recalculateNetwork(internalId)
+            // Inviamo l'ID della rete nella coda di elaborazione sequenziale
+            calculationChannel.trySend(internalId)
         }
     }
     suspend fun deleteNetwork(network: WifiNetwork) {
         dao.deleteNetwork(network)
     }
 
-    //Funzione per recuperare le reti che stanno in una certa posizione
     suspend fun getNetworksInBoundingBox(north: Double, south: Double, east: Double, west: Double): List<WifiNetwork> {
         return dao.getNetworksInBoundingBox(north, south, east, west)
     }
@@ -172,13 +218,23 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     fun getTotalScansCount() = dao.getTotalScansCount()
     fun getTotalDistance() = dao.getTotalDistance()
     fun getTotalTime() = dao.getTotalTime()
-    fun getNetworkDiscoveryTimes() = dao.getNetworkDiscoveryTimes()
-    fun getAllScanTimes() = dao.getAllScanTimes()
-    fun getSessionIdWithMostUniqueNetworks() = dao.getSessionIdWithMostUniqueNetworks()
-
+    fun getDiscoveryTrendStats(startTime: Long, endTime: Long, bucketSize: Long) = dao.getDiscoveryTrendStats(startTime, endTime, bucketSize)
+    fun getScanTrendStats(startTime: Long, endTime: Long, bucketSize: Long) = dao.getScanTrendStats(startTime, endTime, bucketSize)
+    fun getSessionTrendStats(startTime: Long, endTime: Long, bucketSize: Long) = dao.getSessionTrendStats(startTime, endTime, bucketSize)
+    fun getSessionWithMostUniqueNetworks() = dao.getSessionWithMostUniqueNetworks()
+    fun getLongestSession() = dao.getLongestSession()
+    fun getMostDistanceSession() = dao.getMostDistanceSession()
+    fun getSessionTotalScansCountFlow(sessionId: Int?) = dao.getSessionTotalScansCountFlow(sessionId)
+    fun getSessionDiscoveryCountFlow(sessionId: Int?) = dao.getSessionDiscoveryCountFlow(sessionId)
+    fun getSessionUniqueNetworksCountFlow(sessionId: Int?) = dao.getSessionUniqueNetworksCountFlow(sessionId)
+    fun getCategoryStatsFlow(sessionId: Int?) = dao.getCategoryStatsFlow(sessionId)
+    fun getSecurityStatsFlow(sessionId: Int?) = dao.getSecurityStatsFlow(sessionId)
+    fun getFrequencyStatsFlow(sessionId: Int?) = dao.getFrequencyStatsFlow(sessionId)
     fun getAllSessions() = dao.getAllSessions()
-    fun getNetworksForSession(sessionId: Int?) = dao.getNetworksForSession(sessionId)
     fun getScanRecordsForSession(sessionId: Int?) = dao.getScanRecordsForSession(sessionId)
+
+    suspend fun insertSession(session: ScanSession): Long = dao.insertSession(session)
+    suspend fun updateSession(session: ScanSession) = dao.updateSession(session)
 
     suspend fun updateSessionDistance(sessionId: Int, distance: Double) {
         dao.updateSessionDistance(sessionId, distance)

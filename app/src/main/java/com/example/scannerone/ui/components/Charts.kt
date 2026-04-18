@@ -229,9 +229,10 @@ fun LineChart(
         Row(modifier = Modifier.fillMaxWidth().height(160.dp)) {
             // Y-axis
             Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxHeight().padding(end = 8.dp)) {
-                Text("${maxVal.toInt()}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${(maxVal/2).toInt()}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("0", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                for (i in 4 downTo 0) {
+                    val labelValue = (maxVal * (i / 4f)).toInt()
+                    Text("$labelValue", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             
             Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp, bottom = 8.dp)) {
@@ -275,10 +276,11 @@ fun LineChart(
                 
                 val path = Path()
                 
-                // Draw grid lines
-                drawLine(Color.LightGray.copy(alpha = 0.5f), Offset(0f, 0f), Offset(width, 0f), strokeWidth = 2f)
-                drawLine(Color.LightGray.copy(alpha = 0.5f), Offset(0f, height/2), Offset(width, height/2), strokeWidth = 2f)
-                drawLine(Color.LightGray.copy(alpha = 0.5f), Offset(0f, height), Offset(width, height), strokeWidth = 2f)
+                // Draw grid lines (5 lines)
+                for (i in 0..4) {
+                    val yLine = height * (i / 4f)
+                    drawLine(Color.LightGray.copy(alpha = 0.5f), Offset(0f, yLine), Offset(width, yLine), strokeWidth = 2f)
+                }
                 
                 data.forEachIndexed { index, pair ->
                     val x = index * stepX

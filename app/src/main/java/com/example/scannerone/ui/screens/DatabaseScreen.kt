@@ -12,6 +12,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.scannerone.viewmodel.WifiScanViewModel
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Update
 import java.util.Locale
 
 @Composable
@@ -36,29 +43,38 @@ fun DatabaseScreen(
     val secOptions = listOf("Tutte", "WPA", "WPA1", "WPA2", "WPA3")
     var selectedSecurity by remember { mutableStateOf(secOptions[0]) }
 
+    val context = LocalContext.current
+
     Scaffold(
         modifier = modifier,
         floatingActionButton = {
-            FloatingActionButton(onClick = {//utilizzato solo per test per generare dati mock
-                //Generiamo un MAC Address casuale e univoco (es. "F3:1A:C9:8B:42:E1")
-                val hexChars = "0123456789ABCDEF"
-                val randomBssid = (1..6).joinToString(":") {
-                    "${hexChars.random()}${hexChars.random()}"
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.End) {
+                SmallFloatingActionButton(onClick = { 
+                    viewModel.generateYearlyMock()
+                    Toast.makeText(context, "Mock Annuale", Toast.LENGTH_SHORT).show()
+                }, containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
+                    Icon(Icons.Default.History, contentDescription = "Mock Anno")
                 }
-
-                //Inseriamo la rete finta usando il MAC appena generato
-                viewModel.insertScannedNetwork(
-                    bssid = randomBssid,
-                    ssid = "Router_${randomBssid.takeLast(5)}",
-                    capabilities = "[WPA2-PSK-CCMP]",
-                    frequency = listOf(2412, 5180, 5500).random(),
-                    rssi = -(30..90).random(),
-                    lat = 45.4642 + Math.random() * 0.05,
-                    lon = 9.1900 + Math.random() * 0.05,
-                    accuracy = (5..15).random().toFloat()
+                SmallFloatingActionButton(onClick = { 
+                    viewModel.generateMonthlyMock()
+                    Toast.makeText(context, "Mock Mensile", Toast.LENGTH_SHORT).show()
+                }, containerColor = MaterialTheme.colorScheme.secondaryContainer) {
+                    Icon(Icons.Default.CalendarMonth, contentDescription = "Mock Mese")
+                }
+                SmallFloatingActionButton(onClick = { 
+                    viewModel.generateWeeklyMock()
+                    Toast.makeText(context, "Mock Settimana", Toast.LENGTH_SHORT).show()
+                }) {
+                    Icon(Icons.Default.Update, contentDescription = "Mock Settimana")
+                }
+                ExtendedFloatingActionButton(
+                    onClick = { 
+                        viewModel.generateMockSession()
+                        Toast.makeText(context, "Mock Ora", Toast.LENGTH_SHORT).show()
+                    },
+                    icon = { Icon(Icons.Default.Add, null) },
+                    text = { Text("Mock Ora") }
                 )
-            }) {
-                Text("+ Mock")
             }
         }
     ) { innerPadding ->

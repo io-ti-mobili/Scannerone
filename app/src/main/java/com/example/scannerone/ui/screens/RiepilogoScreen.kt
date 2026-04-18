@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.scannerone.viewmodel.DashboardViewModel
+import com.example.scannerone.viewmodel.SessionDetailsViewModel
 import com.example.scannerone.ui.components.*
 import java.util.Locale
 
@@ -25,12 +25,13 @@ import java.util.Locale
 @Composable
 fun RiepilogoScreen(
     modifier: Modifier = Modifier,
-    viewModel: DashboardViewModel = viewModel()
+    viewModel: SessionDetailsViewModel = viewModel()
 ) {
     val sessions by viewModel.allSessions.collectAsState(initial = emptyList())
     val selectedId by viewModel.selectedSessionId.collectAsState()
     
     val sessionUniques by viewModel.sessionUniqueNetworksCount.collectAsState()
+    val sessionDiscoveries by viewModel.sessionDiscoveryCount.collectAsState()
     val sessionTotalScans by viewModel.sessionTotalScansCount.collectAsState()
     val metrics by viewModel.sessionMetrics.collectAsState()
     
@@ -78,45 +79,60 @@ fun RiepilogoScreen(
             DashboardCard(
                 title = "Reti Uniche",
                 value = "$sessionUniques",
+                subtitle = "Totali distinte",
                 icon = Icons.Default.Wifi,
                 modifier = Modifier.weight(1f)
             )
             DashboardCard(
-                title = "Distanza (km)",
-                value = String.format(Locale.getDefault(), "%.2f", metrics.distanceKm),
-                icon = Icons.Default.Route,
+                title = "Nuove Scoperte",
+                value = "$sessionDiscoveries",
+                subtitle = "Mai viste prima",
+                icon = Icons.Default.Speed, // Uso Speed per indicare il "ritmo" di scoperta
                 modifier = Modifier.weight(1f)
             )
         }
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
+                title = "Distanza (km)",
+                value = String.format(Locale.getDefault(), "%.2f", metrics.distanceKm),
+                icon = Icons.Default.Route,
+                modifier = Modifier.weight(1f)
+            )
+            DashboardCard(
                 title = "Durata",
                 value = formatTimeMin(metrics.durationMin.toLong()),
                 icon = Icons.Default.Timer,
                 modifier = Modifier.weight(1f)
             )
+        }
+        
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
-                title = "Scansioni Effettuate",
+                title = "Scansioni",
                 value = "$sessionTotalScans",
+                subtitle = "Totali eseguiti",
                 icon = Icons.Default.Analytics,
+                modifier = Modifier.weight(1f)
+            )
+            DashboardCard(
+                title = "Discovery Rate",
+                value = String.format(Locale.getDefault(), "%.1f /min", metrics.discoveryRate),
+                subtitle = "Nuove reti/min",
+                icon = Icons.Default.Speed,
                 modifier = Modifier.weight(1f)
             )
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
-                title = "Discovery Rate",
-                value = String.format(Locale.getDefault(), "%.1f /min", metrics.discoveryRate),
-                icon = Icons.Default.Speed,
-                modifier = Modifier.weight(1f)
-            )
-            DashboardCard(
                 title = "Densità Spaziale",
                 value = String.format(Locale.getDefault(), "%.0f /km", metrics.spatialDensity),
+                subtitle = "Reti uniche/km",
                 icon = Icons.Default.Map,
                 modifier = Modifier.weight(1f)
             )
+            Spacer(modifier = Modifier.weight(1f))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -124,7 +140,7 @@ fun RiepilogoScreen(
         // --- SEZIONE GRAFICI ---
         Text("Analisi Reti", style = MaterialTheme.typography.titleMedium)
         
-        ChartCard(title = "Sicurezza (capabilities)") {
+        ChartCard(title = "Sicurezza") {
             PieChart(data = securityStats, isDonut = false)
         }
         
@@ -132,11 +148,11 @@ fun RiepilogoScreen(
             PieChart(data = frequencyStats, isDonut = true)
         }
         
-        ChartCard(title = "Tipologia di Rete (SSID)") {
+        ChartCard(title = "Tipologia di Rete") {
             PieChart(data = categoryStats, isDonut = false)
         }
         
-        ChartCard(title = "Andamento Scoperta (diviso in 7)") {
+        ChartCard(title = "Nuove Reti nel Tempo") {
             LineChart(data = sessionTrendStats, lineColor = MaterialTheme.colorScheme.primary)
         }
 

@@ -20,7 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.scannerone.viewmodel.DashboardViewModel
+import com.example.scannerone.viewmodel.HomeViewModel
+import com.example.scannerone.viewmodel.HallOfFameViewModel
 import com.example.scannerone.viewmodel.TimeFilter
 import com.example.scannerone.ui.components.*
 import java.util.Locale
@@ -28,16 +29,23 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: DashboardViewModel = viewModel()
+    homeViewModel: HomeViewModel = viewModel(),
+    hallOfFameViewModel: HallOfFameViewModel = viewModel()
 ) {
-    val totalNets by viewModel.totalNetworksCount.collectAsState()
-    val totalScans by viewModel.totalScansCount.collectAsState()
-    val totalDistance by viewModel.totalDistance.collectAsState()
-    val totalTime by viewModel.totalTime.collectAsState()
+    val totalNets by homeViewModel.totalNetworksCount.collectAsState()
+    val totalScans by homeViewModel.totalScansCount.collectAsState()
+    val totalDistance by homeViewModel.totalDistance.collectAsState()
+    val totalTime by homeViewModel.totalTime.collectAsState()
 
-    val hallOfFame by viewModel.hallOfFame.collectAsState()
-    val trendStats by viewModel.trendStats.collectAsState()
-    val timeFilter by viewModel.timeFilter.collectAsState()
+    val hallOfFame by hallOfFameViewModel.hallOfFame.collectAsState()
+    val trendStats by homeViewModel.trendStats.collectAsState()
+    val discoveryTimeFilter by homeViewModel.discoveryTimeFilter.collectAsState()
+    
+    val scanTrendStats by homeViewModel.scanTrendStats.collectAsState()
+    val scanTimeFilter by homeViewModel.scanTimeFilter.collectAsState()
+    
+    val sessionTrendStats by homeViewModel.sessionTrendStats.collectAsState()
+    val sessionsTimeFilter by homeViewModel.sessionsTimeFilter.collectAsState()
 
     Column(
         modifier = modifier
@@ -96,7 +104,7 @@ fun HomeScreen(
                 val durationMs = (it.endTime ?: System.currentTimeMillis()) - it.startTime
                 formatTime(durationMs)
             } ?: "-"
-            val date1 = longest?.startTime?.let { viewModel.formatTimestamp(it) } ?: ""
+            val date1 = longest?.startTime?.let { hallOfFameViewModel.formatTimestamp(it) } ?: ""
 
             DashboardCard(
                 title = "Sessione più lunga",
@@ -111,7 +119,7 @@ fun HomeScreen(
 
             val mostDist = hallOfFame.mostDistanceSession
             val distTxt = mostDist?.let { String.format(Locale.getDefault(), "%.2f km", it.distanceMetres / 1000.0) } ?: "-"
-            val date2 = mostDist?.startTime?.let { viewModel.formatTimestamp(it) } ?: ""
+            val date2 = mostDist?.startTime?.let { hallOfFameViewModel.formatTimestamp(it) } ?: ""
 
             DashboardCard(
                 title = "Sessione camminato di più",
@@ -127,7 +135,7 @@ fun HomeScreen(
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val mostUniq = hallOfFame.mostUniquesSession
-            val date3 = mostUniq?.startTime?.let { viewModel.formatTimestamp(it) } ?: ""
+            val date3 = mostUniq?.startTime?.let { hallOfFameViewModel.formatTimestamp(it) } ?: ""
             // Non abbiamo pre-calcolato quante reti uniche ha avuto, mettiamolo descrittivo.
             DashboardCard(
                 title = "Miglior sessione per reti uniche",
@@ -146,11 +154,11 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // --- SEZIONE GRAFICO LINEARE ---
-        val scanTrendStats by viewModel.scanTrendStats.collectAsState()
+        val scanTrendStats by homeViewModel.scanTrendStats.collectAsState()
         
         var expandedMenu1 by remember { mutableStateOf(false) }
         ChartCard(
-            title = "Andamento Scoperta",
+            title = "Nuove Reti nel Tempo",
             action = {
                 Box {
                     OutlinedButton(
@@ -158,7 +166,7 @@ fun HomeScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.defaultMinSize(minHeight = 32.dp)
                     ) {
-                        Text(timeFilter.label, fontSize = 12.sp)
+                        Text(discoveryTimeFilter.label, fontSize = 12.sp)
                         Spacer(Modifier.width(4.dp))
                         Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
@@ -170,7 +178,7 @@ fun HomeScreen(
                             DropdownMenuItem(
                                 text = { Text(filter.label, fontSize = 12.sp) },
                                 onClick = { 
-                                    viewModel.setTimeFilter(filter)
+                                    homeViewModel.setDiscoveryTimeFilter(filter)
                                     expandedMenu1 = false 
                                 }
                             )
@@ -186,7 +194,7 @@ fun HomeScreen(
 
         var expandedMenu2 by remember { mutableStateOf(false) }
         ChartCard(
-            title = "Volume Scansioni",
+            title = "Scansioni nel Tempo",
             action = {
                 Box {
                     OutlinedButton(
@@ -194,7 +202,7 @@ fun HomeScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.defaultMinSize(minHeight = 32.dp)
                     ) {
-                        Text(timeFilter.label, fontSize = 12.sp)
+                        Text(scanTimeFilter.label, fontSize = 12.sp)
                         Spacer(Modifier.width(4.dp))
                         Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
@@ -206,7 +214,7 @@ fun HomeScreen(
                             DropdownMenuItem(
                                 text = { Text(filter.label, fontSize = 12.sp) },
                                 onClick = { 
-                                    viewModel.setTimeFilter(filter)
+                                    homeViewModel.setScanTimeFilter(filter)
                                     expandedMenu2 = false 
                                 }
                             )
@@ -216,6 +224,42 @@ fun HomeScreen(
             }
         ) {
             LineChart(data = scanTrendStats, lineColor = MaterialTheme.colorScheme.secondary)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        var expandedMenu3 by remember { mutableStateOf(false) }
+        ChartCard(
+            title = "Sessioni nel Tempo",
+            action = {
+                Box {
+                    OutlinedButton(
+                        onClick = { expandedMenu3 = true },
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.defaultMinSize(minHeight = 32.dp)
+                    ) {
+                        Text(sessionsTimeFilter.label, fontSize = 12.sp)
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                    DropdownMenu(
+                        expanded = expandedMenu3,
+                        onDismissRequest = { expandedMenu3 = false }
+                    ) {
+                        TimeFilter.entries.forEach { filter ->
+                            DropdownMenuItem(
+                                text = { Text(filter.label, fontSize = 12.sp) },
+                                onClick = { 
+                                    homeViewModel.setSessionsTimeFilter(filter)
+                                    expandedMenu3 = false 
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        ) {
+            LineChart(data = sessionTrendStats, lineColor = MaterialTheme.colorScheme.tertiary)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
