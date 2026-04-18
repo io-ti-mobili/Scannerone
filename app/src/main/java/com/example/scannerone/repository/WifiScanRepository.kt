@@ -1,5 +1,6 @@
 package com.example.scannerone.repository
 
+import androidx.room.withTransaction
 import com.example.scannerone.database.WifiScanDao
 import com.example.scannerone.entities.ScanSession
 import com.example.scannerone.entities.WifiNetwork
@@ -326,7 +327,7 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         bundle: com.example.scannerone.io.ExportBundle,
         db: com.example.scannerone.database.AppDatabase
     ) {
-        androidx.room.withTransaction(db) {
+        db.withTransaction {
 
             // ---- Step 1: Networks ----
             // Mappa: id nel file importato → id reale nel DB dopo il merge
