@@ -15,6 +15,7 @@ import com.example.scannerone.Services.ScanService.WifiScanServiceImpl
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.repository.WifiScanRepository
 import com.example.scannerone.services.GPSService.LocationManagerGPSServiceImplV2
+import com.example.scannerone.services.GPSService.LocationManagerGPSServiceImplV3
 import com.example.scannerone.services.WarDrivingService.WarDrivingServiceImplWiggle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,7 +78,7 @@ class WifiForegroundService : Service() {
             val dao = db.wifiScanDao()
             val repository = WifiScanRepository(dao)
             val scanService = WifiScanServiceImpl(applicationContext)
-            val gpsService = LocationManagerGPSServiceImplV2(applicationContext)
+            val gpsService = LocationManagerGPSServiceImplV3(applicationContext)
             val warDrivingService = WarDrivingServiceImplWiggle(scanService, gpsService, repository, dao)
 
 
