@@ -1,5 +1,6 @@
 package com.example.scannerone.repository
 
+import androidx.room.withTransaction
 import com.example.scannerone.database.WifiScanDao
 import com.example.scannerone.entities.ScanSession
 import com.example.scannerone.entities.WifiNetwork
@@ -298,6 +299,84 @@ class WifiScanRepository(private val dao: WifiScanDao) {
             if (page.isEmpty()) break
             yieldAll(page)
             offset += pageSize
+        }
+    }
+
+    // ---- Export/Import ----
+
+    suspend fun deleteAllRecords() = dao.deleteAllRecords()
+    suspend fun deleteAllSessions() = dao.deleteAllSessions()
+    suspend fun deleteAllNetworks() = dao.deleteAllNetworks()
+
+    suspend fun insertRecords(recordList: List<WifiScanRecord>) {
+        dao.insertRecords(recordList)
+    }
+
+    /**
+     * Import con merge intelligente — non cancella i dati esistenti.
+     *
+     * Strategia:
+     * - Networks: dedup per BSSID. Se il BSSID esiste già → riusa l'ID esistente.
+     *             Altrimenti → inserisci come nuova rete (Room genera nuovo ID).
+     * - Sessions: sempre inserite come nuove (id=0 → Room genera nuovo ID).
+     * - Records:  rimappati con i nuovi networkId e sessionId, inseriti come nuovi (id=0).
+     *
+     * Tutto avviene in una singola transazione Room → rollback automatico su qualsiasi errore.
+     */
+    suspend fun importMergeBundle(
+        bundle: com.example.scannerone.io.ExportBundle,
+        db: com.example.scannerone.database.AppDatabase
+    ) {
+        db.withTransaction {
+
+            // ---- Step 1: Networks ----
+            // Mappa: id nel file importato → id reale nel DB dopo il merge
+            val networkIdMap = mutableMapOf<Int, Int>()
+
+            val networks = bundle.networks
+                ?: throw IllegalArgumentException("Networks mancanti nel bundle")
+
+            networks.forEach { importedNetwork ->
+                // Forza id=0 così Room non prova a inserire con l'ID del file
+                val rowId = dao.insertNetwork(importedNetwork.copy(id = 0))
+                val actualId = if (rowId == -1L) {
+                    // BSSID già presente → recupera l'ID esistente
+                    dao.getNetworkIdByBssid(importedNetwork.bssid)
+                        ?: error("BSSID ${importedNetwork.bssid}: inserimento ignorato ma ID non trovato")
+                } else {
+                    rowId.toInt()
+                }
+                networkIdMap[importedNetwork.id] = actualId
+            }
+
+            // ---- Step 2: Sessions ----
+            // Sempre nuove: non esiste una chiave naturale per le sessioni
+            val sessionIdMap = mutableMapOf<Int, Int>()
+
+            val sessions = bundle.sessions
+                ?: throw IllegalArgumentException("Sessions mancanti nel bundle")
+
+            sessions.forEach { importedSession ->
+                val newId = dao.insertSession(importedSession.copy(id = 0))
+                sessionIdMap[importedSession.id] = newId.toInt()
+            }
+
+            // ---- Step 3: Records ----
+            // Rimappa networkId e sessionId; id=0 → Room genera nuovo ID
+            val records = bundle.records
+                ?: throw IllegalArgumentException("Records mancanti nel bundle")
+
+            records.chunked(200).forEach { chunk ->
+                val remapped = chunk.map { record ->
+                    record.copy(
+                        id        = 0,
+                        networkId = networkIdMap[record.networkId]
+                            ?: error("networkId ${record.networkId} non presente nella mappa — bundle corrotto?"),
+                        sessionId = record.sessionId?.let { sessionIdMap[it] }
+                    )
+                }
+                dao.insertRecords(remapped)
+            }
         }
     }
 }
