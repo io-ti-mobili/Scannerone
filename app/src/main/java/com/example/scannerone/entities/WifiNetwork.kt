@@ -21,5 +21,8 @@ data class WifiNetwork(
     val realStreet: String? = null,
     val realCity: String? = null,
     val realRegion: String? = null,
-    val realCountry: String? = null
+    val realCountry: String? = null,
+    val category: String = "OTHER",
+    val security: String = "OTHER",
+    val frequencyBand: Float = 0.0f
 )

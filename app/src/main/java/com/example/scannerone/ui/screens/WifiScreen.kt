@@ -40,7 +40,7 @@ fun WifiScreen(modifier: Modifier = Modifier) {
     )
 
     fun isThrottleEnabled(context: Context): Boolean {
-        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
             val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
             wifiManager?.isScanThrottleEnabled == true
         } else {

@@ -14,5 +14,7 @@ enum class AppDestination(
     DATABASESCREEN("Database", R.drawable.ic_home),
     WIFISCAN("WifiScan", R.drawable.ic_home),
     MAP("Map", R.drawable.ic_home),
+    RIEPILOGO("Riepilogo", R.drawable.ic_home),
     SETTINGS("Settings", R.drawable.ic_home)
+   
 }

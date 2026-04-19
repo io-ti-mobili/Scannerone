@@ -1,5 +1,7 @@
 package com.example.scannerone.ui
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -38,13 +40,15 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.scannerone.ui.screens.MapScreen
-import com.example.scannerone.ui.AppDestination
 import com.example.scannerone.ui.screens.DatabaseScreen
 import com.example.scannerone.ui.screens.HomeScreen
 import com.example.scannerone.ui.screens.WifiScreen
 import com.example.scannerone.ui.screens.SettingsScreen
+import com.example.scannerone.ui.screens.RiepilogoScreen
 import kotlinx.coroutines.launch
+import com.example.scannerone.ui.AppDestination
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold() {
@@ -147,6 +151,7 @@ fun AppScaffold() {
                         targetId = mapTargetId
                     )
                     AppDestination.SETTINGS -> SettingsScreen(modifier)
+                    AppDestination.RIEPILOGO -> RiepilogoScreen(modifier)
                 }
             }
         }

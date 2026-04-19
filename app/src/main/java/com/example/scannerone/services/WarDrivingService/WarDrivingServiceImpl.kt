@@ -116,38 +116,41 @@ class WarDrivingServiceImpl(
                     } else {
                         val prev = lastPosition!!
                         val dist = prev.distanceTo(position)
-                        
-                        // Determina se il dispositivo si sta effettivamente muovendo
-                        // Usa la velocità hardware del GPS invece della semplice distanza)
-                        val isMoving = if (position.hasSpeed) {
-                            // Se il sensore GPS riporta una velocità < 0.3 m/s (1.08 km/h), consideriamo l'utente fermo
-                            position.speed > 0.3f
+
+
+                        val isMoving = if (position.hasSpeed && position.speed > 0.0f) {
+                            position.speed > 0.5f
                         } else {
-                            // Fallback: se la velocità hardware non è disponibile, filtriamo il rumore
-                            // basandoci su uno spostamento minimo e ragionevole
-                            dist > 2.5
+
+                            val isFarEnough = dist > 15.0
+
+
+                            val timeDeltaSec = (position.timestamp - prev.timestamp) / 1000.0
+
+
+                            val isReasonableSpeed = if (timeDeltaSec > 0.5) {
+                                val calculatedSpeed = dist / timeDeltaSec
+                                
+                                calculatedSpeed < 10.0
+                            } else {
+                                false // Salto temporale anomalo
+                            }
+
+
+                            isFarEnough && isReasonableSpeed && dist > (position.accuracy * 0.6)
                         }
+
 
                         if (isMoving) {
                             totalDistanceMetres += dist
                             lastPosition = position
 
-                            // Aggiornamento DB per la distanza percorsa (10 metri = 0.01 km)
-                            if (totalDistanceMetres - lastSavedDistanceMetres >= 10.0) {
-                                lastSavedDistanceMetres = totalDistanceMetres
-                                sessionScope.launch {
-                                    try {
-                                        dao.updateSession(
-                                            ScanSession(
-                                                id = sessionId,
-                                                startTime = startTime,
-                                                distanceMetres = totalDistanceMetres,
-                                                uniqueNetworksSeen = uniqueNetworksSeen
-                                            )
-                                        )
-                                    } catch (e: Exception) {
-                                        Log.e(TAG, "Errore update distanza DB: ${e.message}")
-                                    }
+
+                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                                try {
+                                    repository.updateSessionDistance(sessionId, totalDistanceMetres)
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Errore aggiornamento distanza in tempo reale: ${e.message}")
                                 }
                             }
                         }
