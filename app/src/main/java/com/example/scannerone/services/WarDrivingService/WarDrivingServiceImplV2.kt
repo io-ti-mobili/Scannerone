@@ -20,7 +20,7 @@ import kotlinx.coroutines.channels.Channel
  * è interamente guidato da [MotionConfig.profileFor] — nessuna costante di
  * movimento è definita qui. Per cambiare le soglie modifica [MotionConfig].
  */
-class WarDrivingServiceImplWiggle(
+class WarDrivingServiceImplV2(
     private val scanService: ScanService,
     private val gpsService: GPSService,
     private val repository: WifiScanRepository,
