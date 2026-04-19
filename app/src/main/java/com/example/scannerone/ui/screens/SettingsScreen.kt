@@ -1,8 +1,10 @@
 package com.example.scannerone.ui.screens
 
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +24,7 @@ import com.example.scannerone.viewmodel.StrategyType
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -105,7 +108,6 @@ fun SettingsScreen(
     }
 
     // ---- Logica Lingua e Tema ----
-    val context = androidx.compose.ui.platform.LocalContext.current
     val systemLang = context.resources.configuration.locales[0].language
     val initialLang = if (systemLang == "it") "Italiano" else "English"
     val systemInDark = androidx.compose.foundation.isSystemInDarkTheme()
