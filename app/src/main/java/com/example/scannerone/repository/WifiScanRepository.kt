@@ -41,9 +41,8 @@ class WifiScanRepository(private val dao: WifiScanDao) {
     /**
      * Semplifichiamo le soglie di qualità.
      */
-    private val maxAcceptedAccuracy = 20.0f
+    private val maxAcceptedAccuracy = WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M
     private val minRssiForQuality = -92
-    private val MIN_RSSI = -85
 
     // Scope dedicato per task di background (ricalcolo e geocoding)
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -102,18 +101,28 @@ class WifiScanRepository(private val dao: WifiScanDao) {
 
     private suspend fun recalculateNetwork(networkId: Int) {
         val history = dao.getScansForNetwork(networkId)
-        
-        val highQualityScans = history.filter {
-            it.scanAccuracy <= maxAcceptedAccuracy && it.rssi >= minRssiForQuality
+
+        if (history.isEmpty()) return
+        var usableScans = history.filter {
+            it.scanAccuracy <= maxAcceptedAccuracy
         }
 
-        // Seleziona i migliori "N" per il calcolo basandosi su recency/accuracy
-        val bestScansForCompute = highQualityScans
+        // 2. FALLBACK (Il Salvagente):
+        // Se TUTTE le scansioni di questa rete avevano un GPS pessimo (es. eri al chiuso
+        // o sotto alberi fitti), usableScans sarebbe vuota e la rete scomparirebbe.
+        // In questo caso, usiamo l'intero storico: è meglio avere una rete posizionata
+        // in modo approssimativo (con precisione bassa) che non averla affatto!
+        if (usableScans.isEmpty()) {
+            usableScans = history
+        }
+
+        // 3. Seleziona i migliori "N" per il calcolo basandosi su recency/accuracy
+        val bestScansForCompute = usableScans
             .sortedByDescending { it.timestamp.toFloat() / (it.scanAccuracy + 1f) }
             .take(MAX_SCANS_FOR_COMPUTE)
-        
         if (bestScansForCompute.isNotEmpty()) {
             val newPosition = activeStrategy.calculatePosition(bestScansForCompute)
+
             if (newPosition != null) {
                 dao.updateNetworkLocation(
                     networkId = networkId,
@@ -231,9 +240,12 @@ class WifiScanRepository(private val dao: WifiScanDao) {
         )
         dao.insertScanRecord(record)
         pruneRecordsIfNeeded(internalId)
-        
+
         val count = dao.getScanCountForNetwork(internalId)
-        if (count == 1 || (count > 0 && count % scansThresholdForCompute == 0)) {
+
+        // CALCOLA SEMPRE per le prime 5 scansioni (per dare sùbito una posizione).
+        // Poi, per non sovraccaricare il sistema, calcola solo ogni 5 nuove scansioni.
+        if (count <= scansThresholdForCompute || count % scansThresholdForCompute == 0) {
             calculationChannel.trySend(internalId)
         }
     }
