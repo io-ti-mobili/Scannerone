@@ -98,64 +98,6 @@ fun DatabaseScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // 1. BLOCCO CONFIGURAZIONE MOTORE MATEMATICO
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Configurazione Motore Matematico",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(
-                                selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.CENTROID,
-                                onClick = { viewModel.updateDraftConfig(draftConfig.copy(baseStrategyType = com.example.scannerone.viewmodel.StrategyType.CENTROID)) }
-                            )
-                            Text("Weighted Centroid", style = MaterialTheme.typography.bodySmall)
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            RadioButton(
-                                selected = draftConfig.baseStrategyType == com.example.scannerone.viewmodel.StrategyType.TRILATERATION,
-                                onClick = { viewModel.updateDraftConfig(draftConfig.copy(baseStrategyType = com.example.scannerone.viewmodel.StrategyType.TRILATERATION)) }
-                            )
-                            Text("Trilateration", style = MaterialTheme.typography.bodySmall)
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = draftConfig.useRansac,
-                                onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useRansac = it)) }
-                            )
-                            Text("Applica Filtraggio RANSAC (Scarta Outliers)", style = MaterialTheme.typography.bodySmall)
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = draftConfig.useGpsWeight,
-                                onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useGpsWeight = it)) }
-                            )
-                            Text("Aggiungi Peso Precisione GPS", style = MaterialTheme.typography.bodySmall)
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Button(
-                            onClick = { viewModel.applyDraftAndRecalculate() },
-                            enabled = draftConfig != appliedConfig,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Applica e Ricalcola DB")
-                        }
-                    }
-                }
-            }
-
             // 2. BLOCCO RICERCA E FILTRI
             item {
                 Column(
