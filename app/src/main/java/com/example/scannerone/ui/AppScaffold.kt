@@ -46,7 +46,7 @@ import com.example.scannerone.ui.screens.WifiScreen
 import com.example.scannerone.ui.screens.SettingsScreen
 import com.example.scannerone.ui.screens.RiepilogoScreen
 import kotlinx.coroutines.launch
-import com.example.scannerone.ui.AppDestination
+import androidx.compose.foundation.layout.size
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,7 +89,8 @@ fun AppScaffold() {
                             icon = {
                                 Icon(
                                     painterResource(destination.icon),
-                                    contentDescription = destination.label
+                                    contentDescription = destination.label,
+                                    modifier = Modifier.size(24.dp)
                                 )
                             },
                             label = { Text(destination.label) },

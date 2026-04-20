@@ -11,10 +11,10 @@ enum class AppDestination(
     val icon: Int,
 ) {
     HOME("Home", R.drawable.ic_home),
-    DATABASESCREEN("Database", R.drawable.ic_home),
-    WIFISCAN("WifiScan", R.drawable.ic_home),
-    MAP("Map", R.drawable.ic_home),
-    RIEPILOGO("Riepilogo", R.drawable.ic_home),
-    SETTINGS("Settings", R.drawable.ic_home)
+    DATABASESCREEN("Database", R.drawable.database),
+    WIFISCAN("WifiScan", R.drawable.wifi),
+    MAP("Map", R.drawable.map),
+    RIEPILOGO("Riepilogo", R.drawable.report),
+    SETTINGS("Settings", R.drawable.settings)
    
 }
