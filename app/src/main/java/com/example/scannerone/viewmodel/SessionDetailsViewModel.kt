@@ -5,7 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.entities.ScanSession
-import com.example.scannerone.repository.WifiScanRepository
+import com.example.scannerone.repository.AnalyticsRepository
+import com.example.scannerone.repository.SessionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,11 +28,11 @@ data class SessionMetrics(
 
 class SessionDetailsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = WifiScanRepository(
-        AppDatabase.getDatabase(application).wifiScanDao()
-    )
+    private val db = AppDatabase.getDatabase(application)
+    private val sessionRepository = SessionRepository(db.sessionDao())
+    private val analyticsRepository = AnalyticsRepository(db.analyticsDao())
 
-    val allSessions = repository.getAllSessions()
+    val allSessions = sessionRepository.getAllSessions()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -47,36 +48,36 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val sessionTotalScansCount = _selectedSessionId
-        .flatMapLatest { id -> repository.getSessionTotalScansCountFlow(id) }
+        .flatMapLatest { id -> sessionRepository.getSessionTotalScansCountFlow(id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val sessionDiscoveryCount = _selectedSessionId
-        .flatMapLatest { id -> repository.getSessionDiscoveryCountFlow(id) }
+        .flatMapLatest { id -> sessionRepository.getSessionDiscoveryCountFlow(id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val sessionUniqueNetworksCount = _selectedSessionId
-        .flatMapLatest { id -> repository.getSessionUniqueNetworksCountFlow(id) }
+        .flatMapLatest { id -> sessionRepository.getSessionUniqueNetworksCountFlow(id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    private val totalDistance = repository.getTotalDistance().map { it ?: 0.0 }
-    private val totalTime = repository.getTotalTime().map { it ?: 0L }
+    private val totalDistance = analyticsRepository.getTotalDistance().map { it ?: 0.0 }
+    private val totalTime = analyticsRepository.getTotalTime().map { it ?: 0L }
 
-    private val globalStats = combine(totalDistance, totalTime) { dist, time -> 
+    private val globalStats = combine(totalDistance, totalTime) { dist, time ->
         Pair(dist, time)
     }
 
     val sessionMetrics = combine(
-        _selectedSessionId, 
-        allSessions, 
-        sessionDiscoveryCount, 
-        sessionUniqueNetworksCount, 
+        _selectedSessionId,
+        allSessions,
+        sessionDiscoveryCount,
+        sessionUniqueNetworksCount,
         globalStats
     ) { id, sessions, discoveries, uniques, globals ->
         var totalDistKm = 0.0
         var totalDurMin = 0.0
-        
+
         if (id == null) {
             totalDistKm = globals.first / 1000.0
             totalDurMin = globals.second / 60000.0
@@ -88,10 +89,10 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
                 totalDurMin = (end - session.startTime) / 60000.0
             }
         }
-        
+
         val dRate = if (totalDurMin > 0) discoveries / totalDurMin else 0.0
         val sDensity = if (totalDistKm > 0) uniques / totalDistKm else 0.0
-        
+
         SessionMetrics(totalDistKm, totalDurMin, dRate, sDensity)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SessionMetrics())
 
@@ -100,7 +101,7 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val categoryStats = _selectedSessionId
-        .flatMapLatest { id -> repository.getCategoryStatsFlow(id) }
+        .flatMapLatest { id -> analyticsRepository.getCategoryStatsFlow(id) }
         .map { list ->
             val result = mutableMapOf<String, Float>()
             for (item in list) {
@@ -108,7 +109,7 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
                     val label = when (item.type) {
                         "ISP" -> "ISP"
                         "FAST_FOOD" -> "Fast Food"
-                        "UNIVERSITY" -> "Università"
+                        "UNIVERSITY" -> "Universita"
                         "HOTSPOT" -> "Hotspot Personali"
                         else -> "Altro"
                     }
@@ -118,10 +119,10 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
             filterZeroes(result)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
-    
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val securityStats = _selectedSessionId
-        .flatMapLatest { id -> repository.getSecurityStatsFlow(id) }
+        .flatMapLatest { id -> analyticsRepository.getSecurityStatsFlow(id) }
         .map { list ->
             val result = mutableMapOf<String, Float>()
             for (item in list) {
@@ -136,7 +137,7 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val frequencyStats = _selectedSessionId
-        .flatMapLatest { id -> repository.getFrequencyStatsFlow(id) }
+        .flatMapLatest { id -> analyticsRepository.getFrequencyStatsFlow(id) }
         .map { list ->
             val result = mutableMapOf<String, Float>()
             for (item in list) {
@@ -152,25 +153,25 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
     // 4. Andamento Tendenza Intra-Sessione (grafico lineare fine)
     @OptIn(ExperimentalCoroutinesApi::class)
     val sessionScanRecords = _selectedSessionId
-        .flatMapLatest { id -> repository.getScanRecordsForSession(id) }
+        .flatMapLatest { id -> sessionRepository.getScanRecordsForSession(id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val sessionTrendStats = sessionScanRecords.map { records ->
         if (records.isEmpty()) return@map emptyList<Pair<String, Int>>()
-        
+
         val minTime = records.minOf { it.timestamp }
         val maxTime = records.maxOf { it.timestamp }
         val durationMs = maxTime - minTime
-        
-        // Arrotondiamo il tempo di inizio al minuto precedente per avere etichette più pulite
+
+        // Arrotondiamo il tempo di inizio al minuto precedente per avere etichette piu pulite
         val calendar = java.util.Calendar.getInstance()
         calendar.timeInMillis = minTime
         calendar.set(java.util.Calendar.SECOND, 0)
         calendar.set(java.util.Calendar.MILLISECOND, 0)
         val snappedStart = calendar.timeInMillis
-        
+
         val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-        
+
         // Scegliamo uno step temporale "umano" (5m, 10m, 30m, 1h) in base alla durata
         val stepMs = when {
             durationMs <= 10 * 60 * 1000 -> 2 * 60 * 1000L   // 2 minuti per sessioni brevissime
@@ -179,11 +180,11 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
             durationMs <= 6 * 60 * 60 * 1000 -> 60 * 60 * 1000L // 1 ora
             else -> 3 * 60 * 60 * 1000L // 3 ore
         }
-        
+
         val trend = mutableListOf<Pair<String, Int>>()
         var currentTime = snappedStart
-        
-        // Generiamo i punti finché non superiamo il tempo massimo
+
+        // Generiamo i punti finche non superiamo il tempo massimo
         while (currentTime <= maxTime || trend.size < 2) {
             val nextTime = currentTime + stepMs
             val count = records.count { it.timestamp in currentTime until nextTime && it.isFirstDiscovery }

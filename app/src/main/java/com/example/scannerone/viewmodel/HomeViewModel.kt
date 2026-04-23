@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.entities.ScanSession
-import com.example.scannerone.repository.WifiScanRepository
+import com.example.scannerone.repository.AnalyticsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,8 +36,8 @@ data class TrendParams(
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = WifiScanRepository(
-        AppDatabase.getDatabase(application).wifiScanDao()
+    private val repository = AnalyticsRepository(
+        AppDatabase.getDatabase(application).analyticsDao()
     )
 
     // 1. Statistiche Globali (Numeri in evidenza)

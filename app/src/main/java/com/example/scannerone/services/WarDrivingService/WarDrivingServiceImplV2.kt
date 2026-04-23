@@ -2,9 +2,9 @@ package com.example.scannerone.services.WarDrivingService
 
 import android.util.Log
 import com.example.scannerone.Services.ScanService.ScanService
-import com.example.scannerone.database.WifiScanDao
 import com.example.scannerone.entities.ScanSession
-import com.example.scannerone.repository.WifiScanRepository
+import com.example.scannerone.repository.NetworkRepository
+import com.example.scannerone.repository.SessionRepository
 import com.example.scannerone.services.GPSService.GPSService
 import com.example.scannerone.services.GPSService.Position
 import com.example.scannerone.services.motion.MotionConfig
@@ -23,8 +23,8 @@ import kotlinx.coroutines.channels.Channel
 class WarDrivingServiceImplV2(
     private val scanService: ScanService,
     private val gpsService: GPSService,
-    private val repository: WifiScanRepository,
-    private val dao: WifiScanDao
+    private val scanRepository: NetworkRepository,
+    private val sessionRepository: SessionRepository
 ) : WarDrivingService {
 
     companion object {
@@ -35,7 +35,7 @@ class WarDrivingServiceImplV2(
 
     override suspend fun runSession(onResult: (WarDrivingScanResult) -> Unit) {
         val startTime = System.currentTimeMillis()
-        val sessionId = dao.insertSession(ScanSession(startTime = startTime)).toInt()
+        val sessionId = sessionRepository.insertSession(ScanSession(startTime = startTime)).toInt()
         Log.d(TAG, "Sessione avviata: ID=$sessionId")
 
         val scope = CoroutineScope(currentCoroutineContext())
@@ -71,7 +71,13 @@ class WarDrivingServiceImplV2(
                                 val snap = totalDistM
                                 scope.launch {
                                     runCatching {
-                                        dao.updateSession(ScanSession(id = sessionId, startTime = startTime, distanceMetres = snap))
+                                        sessionRepository.updateSession(
+                                            ScanSession(
+                                                id = sessionId,
+                                                startTime = startTime,
+                                                distanceMetres = snap
+                                            )
+                                        )
                                     }.onFailure { Log.e(TAG, "Errore update distanza: ${it.message}") }
                                 }
                             }
@@ -168,7 +174,16 @@ class WarDrivingServiceImplV2(
             val avg: Double = if (totalDuration > 0L) scanCount.toDouble() / (totalDuration.toDouble() / 60_000.0) else 0.0
             Log.d(TAG, "Sessione $sessionId chiusa | ${totalDuration / 1000}s | $scanCount scan | ${"%.1f".format(avg)}/min | ${"%.3f".format(finalDist / 1000.0)} km")
             withContext(NonCancellable) {
-                runCatching { dao.updateSession(ScanSession(id = sessionId, startTime = startTime, endTime = System.currentTimeMillis(), distanceMetres = finalDist)) }
+                runCatching {
+                    sessionRepository.updateSession(
+                        ScanSession(
+                            id = sessionId,
+                            startTime = startTime,
+                            endTime = System.currentTimeMillis(),
+                            distanceMetres = finalDist
+                        )
+                    )
+                }
                     .onFailure { Log.e(TAG, "Errore chiusura sessione: ${it.message}") }
             }
         }
@@ -181,10 +196,17 @@ class WarDrivingServiceImplV2(
         var saved = 0
         for (r in scanResults) {
             runCatching {
-                repository.insertScannedNetwork(r.BSSID, r.SSID ?: "", r.capabilities ?: "", r.frequency, r.level, position.latitude, position.longitude, position.accuracy, sessionId)
+                scanRepository.insertScannedNetwork(r.BSSID, r.SSID ?: "", r.capabilities ?: "", r.frequency, r.level, position.latitude, position.longitude, position.accuracy, sessionId)
                 saved++
             }.onFailure { Log.e(TAG, "Errore salvataggio ${r.BSSID}: ${it.message}") }
         }
-        return WarDrivingScanResult(scanResults.size, saved, dao.getNetworksFoundInSession(sessionId), position, totalDistanceMetres, scanResults)
+        return WarDrivingScanResult(
+            scanResults.size,
+            saved,
+            sessionRepository.getNetworksFoundInSession(sessionId),
+            position,
+            totalDistanceMetres,
+            scanResults
+        )
     }
 }

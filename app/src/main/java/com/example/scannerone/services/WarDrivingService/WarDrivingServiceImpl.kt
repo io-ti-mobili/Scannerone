@@ -2,9 +2,9 @@ package com.example.scannerone.services.WarDrivingService
 
 import android.util.Log
 import com.example.scannerone.Services.ScanService.ScanService
-import com.example.scannerone.database.WifiScanDao
 import com.example.scannerone.entities.ScanSession
-import com.example.scannerone.repository.WifiScanRepository
+import com.example.scannerone.repository.NetworkRepository
+import com.example.scannerone.repository.SessionRepository
 import com.example.scannerone.services.GPSService.GPSService
 import com.example.scannerone.services.GPSService.Position
 import kotlinx.coroutines.currentCoroutineContext
@@ -16,8 +16,8 @@ import java.util.ArrayDeque
 class WarDrivingServiceImpl(
     private val scanService: ScanService,
     private val gpsService: GPSService,
-    private val repository: WifiScanRepository,
-    private val dao: WifiScanDao
+    private val scanRepository: NetworkRepository,
+    private val sessionRepository: SessionRepository
 ) : WarDrivingService {
 
     companion object {
@@ -97,7 +97,7 @@ class WarDrivingServiceImpl(
      */
     override suspend fun runSession(onResult: (WarDrivingScanResult) -> Unit) {
         val startTime = System.currentTimeMillis()
-        val sessionId = dao.insertSession(ScanSession(startTime = startTime)).toInt()
+        val sessionId = sessionRepository.insertSession(ScanSession(startTime = startTime)).toInt()
         Log.d(TAG, "Nuova sessione creata: ID=$sessionId")
 
         val sessionScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.currentCoroutineContext())
@@ -148,7 +148,7 @@ class WarDrivingServiceImpl(
 
                             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                                 try {
-                                    repository.updateSessionDistance(sessionId, totalDistanceMetres)
+                                    sessionRepository.updateSessionDistance(sessionId, totalDistanceMetres)
                                 } catch (e: Exception) {
                                     Log.e(TAG, "Errore aggiornamento distanza in tempo reale: ${e.message}")
                                 }
@@ -203,7 +203,7 @@ class WarDrivingServiceImpl(
             // Chiudi la sessione con i dati finali
             try {
                 kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
-                    dao.updateSession(
+                    sessionRepository.updateSession(
                         ScanSession(
                             id = sessionId,
                             startTime = startTime,
@@ -237,7 +237,7 @@ class WarDrivingServiceImpl(
         var savedCount = 0
         for (result in scanResults) {
             try {
-                repository.insertScannedNetwork(
+                scanRepository.insertScannedNetwork(
                     bssid = result.BSSID,
                     ssid = result.SSID ?: "",
                     capabilities = result.capabilities ?: "",
@@ -256,7 +256,7 @@ class WarDrivingServiceImpl(
 
         Log.d(TAG, "Ciclo completato: $savedCount/${scanResults.size} reti salvate")
 
-        val uniqueNetworks = dao.getNetworksFoundInSession(sessionId)
+        val uniqueNetworks = sessionRepository.getNetworksFoundInSession(sessionId)
 
         return WarDrivingScanResult(
             networksFound = scanResults.size,

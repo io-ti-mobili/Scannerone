@@ -4,27 +4,25 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.scannerone.database.AppDatabase
-import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.entities.ScanSession
-import com.example.scannerone.repository.WifiScanRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.example.scannerone.entities.WifiNetwork
+import com.example.scannerone.repository.NetworkRepository
+import com.example.scannerone.repository.SearchRepository
+import com.example.scannerone.repository.SessionRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.map
 
 private const val DB_PAGE_SIZE = 10 //modificare in base a quanti elementi si vogliono mostrare nella schermata databeis
 enum class StrategyType { CENTROID, TRILATERATION }
-
-
 
 // I modelli dei dati possono stare fuori dalla classe
 data class SearchFilters(
@@ -40,25 +38,12 @@ data class StrategyConfig(
     val useGpsWeight: Boolean = false
 )
 
-
 class WifiScanViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = WifiScanRepository(
-        AppDatabase.getDatabase(application).wifiScanDao()
-    )
-    /*
-    fun deleteNetwork(network: WifiNetwork) {
-        viewModelScope.launch {
-            repository.deleteNetwork(network)
-        }
-    }
-    */
-
-
-
-
-
-
+    private val db = AppDatabase.getDatabase(application)
+    private val scanRepository = NetworkRepository(db.networkDao())
+    private val searchRepository = SearchRepository(db.searchDao())
+    private val sessionRepository = SessionRepository(db.sessionDao())
 
     // 1. STATO DELLA RICERCA AVANZATA
     private val _config = MutableStateFlow(StrategyConfig())
@@ -68,7 +53,7 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
     val draftConfig = _draftConfig.asStateFlow()
 
     // ==========================================================
-    // 1. STATO DELLA RICERCA AVANZATA (Ora è DENTRO la classe!)
+    // 1. STATO DELLA RICERCA AVANZATA (Ora e DENTRO la classe!)
     // ==========================================================
     private val _searchFilters = MutableStateFlow(SearchFilters())
     val searchFilters = _searchFilters.asStateFlow()
@@ -100,10 +85,10 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
     fun applyDraftAndRecalculate() {
         val applied = _draftConfig.value
         _config.value = applied
-        repository.config = applied
+        scanRepository.config = applied
 
         viewModelScope.launch {
-            repository.recalculateAllNetworks()
+            scanRepository.recalculateAllNetworks()
         }
     }
 
@@ -115,7 +100,7 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
         Pair(filters, page)
     }
         .flatMapLatest { (filters, page) ->
-            repository.searchNetworksAdvancedPaged(
+            searchRepository.searchNetworksAdvancedPaged(
                 ssid = filters.ssid,
                 bssid = filters.bssid,
                 address = filters.address,
@@ -149,7 +134,7 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
     @OptIn(ExperimentalCoroutinesApi::class)
     val totalFilteredNetworks = _searchFilters
         .flatMapLatest { filters ->
-            repository.countNetworksAdvancedFiltered(
+            searchRepository.countNetworksAdvancedFiltered(
                 ssid = filters.ssid,
                 bssid = filters.bssid,
                 address = filters.address,
@@ -179,7 +164,7 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _isPagingBusy.value = true
             val hasData = withContext(Dispatchers.IO) {
-                repository.hasFilteredNetworkAtOffset(
+                searchRepository.hasFilteredNetworkAtOffset(
                     ssid = currentFilters.ssid,
                     bssid = currentFilters.bssid,
                     address = currentFilters.address,
@@ -209,20 +194,20 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
         accuracy: Float
     ) {
         viewModelScope.launch {
-            repository.insertScannedNetwork(bssid, ssid, capabilities, frequency, rssi, lat, lon, accuracy)
+            scanRepository.insertScannedNetwork(bssid, ssid, capabilities, frequency, rssi, lat, lon, accuracy)
             _isLastPageKnown.value = false
         }
     }
 
     fun deleteNetwork(network: WifiNetwork) {
         viewModelScope.launch {
-            repository.deleteNetwork(network)
+            scanRepository.deleteNetwork(network)
             _isLastPageKnown.value = false
         }
     }
 
     /**
-     * Genera una sessione finta con più scansioni per testare i grafici e la Hall of Fame.
+     * Genera una sessione finta con piu scansioni per testare i grafici e la Hall of Fame.
      * @param startTime Tempo di inizio (default 30 min fa)
      */
     fun generateMockSession(startTime: Long = System.currentTimeMillis() - (30 * 60 * 1000)) {
@@ -230,12 +215,12 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
             // Calcoliamo una durata per la sessione (es. 20-45 minuti)
             val durationMs = (20..45).random() * 60 * 1000L
             val endTime = startTime + durationMs
-            
+
             val session = ScanSession(startTime = startTime)
-            val sessionId = repository.insertSession(session).toInt()
+            val sessionId = sessionRepository.insertSession(session).toInt()
 
             val hexChars = "0123456789ABCDEF"
-            
+
             // Pool di SSID basati sulle categorie in UtilsWifi.kt
             val ssidPool = listOf(
                 "Vodafone-Station-7812", "TIM-Wi-Fi-Casa", "Fastweb-Home-99", "Iliadbox-A5B2", // ISP
@@ -246,9 +231,9 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
             )
 
             // Generiamo 8 reti "fisse" lungo il percorso pescate dal pool
-            val mockNetworks = List(8) { i ->
+            val mockNetworks = List(8) {
                 val bssid = (1..6).joinToString(":") { "${hexChars.random()}${hexChars.random()}" }
-                val ssid = ssidPool.random() + "-${(10..99).random()}" // Aggiungiamo un suffisso per varietà
+                val ssid = ssidPool.random() + "-${(10..99).random()}" // Aggiungiamo un suffisso per varieta
                 val cap = if (Math.random() > 0.3) "[WPA2-PSK-CCMP]" else "[OPEN]"
                 val freq = if (Math.random() > 0.5) 2412 else 5180
                 Triple(bssid, ssid, cap to freq)
@@ -267,7 +252,7 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
 
                 for (idx in visibleIndices) {
                     val netData = mockNetworks[idx]
-                    repository.insertScannedNetwork(
+                    scanRepository.insertScannedNetwork(
                         bssid = netData.first,
                         ssid = netData.second,
                         capabilities = netData.third.first,
@@ -286,9 +271,9 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
             val finalSession = session.copy(
                 id = sessionId,
                 endTime = endTime,
-                distanceMetres = 1200.0 + (Math.random() * 500.0) 
+                distanceMetres = 1200.0 + (Math.random() * 500.0)
             )
-            repository.updateSession(finalSession)
+            sessionRepository.updateSession(finalSession)
         }
     }
 
@@ -321,6 +306,4 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
             generateMockSession(pastStart)
         }
     }
-
-
 }

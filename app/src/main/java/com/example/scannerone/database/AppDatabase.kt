@@ -10,7 +10,12 @@ import com.example.scannerone.entities.ScanSession
 
 @Database(entities = [WifiNetwork::class, WifiScanRecord::class, ScanSession::class], version = 6, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun wifiScanDao(): WifiScanDao
+    abstract fun networkDao(): NetworkDao
+    abstract fun searchDao(): SearchDao
+    abstract fun mapDao(): MapDao
+    abstract fun sessionDao(): SessionDao
+    abstract fun analyticsDao(): AnalyticsDao
+    abstract fun importExportDao(): ImportExportDao
 
     companion object {
         @Volatile

@@ -7,7 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.entities.WifiNetwork
-import com.example.scannerone.repository.WifiScanRepository
+import com.example.scannerone.repository.MapRepository
 import com.example.scannerone.services.nominatimApi.NominatimClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -24,8 +24,8 @@ import java.util.Locale
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = WifiScanRepository(
-        AppDatabase.getDatabase(application).wifiScanDao()
+    private val repository = MapRepository(
+        AppDatabase.getDatabase(application).mapDao()
     )
 
     private val _visibleNetworks = MutableStateFlow<List<WifiNetwork>>(emptyList())

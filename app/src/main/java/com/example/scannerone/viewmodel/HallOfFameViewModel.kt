@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.entities.ScanSession
-import com.example.scannerone.repository.WifiScanRepository
+import com.example.scannerone.repository.AnalyticsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -21,8 +21,8 @@ data class HallOfFameRecords(
 
 class HallOfFameViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = WifiScanRepository(
-        AppDatabase.getDatabase(application).wifiScanDao()
+    private val repository = AnalyticsRepository(
+        AppDatabase.getDatabase(application).analyticsDao()
     )
 
     val longestSession = repository.getLongestSession()
