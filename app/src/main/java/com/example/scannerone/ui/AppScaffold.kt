@@ -51,22 +51,23 @@ import androidx.compose.foundation.layout.size
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppScaffold() {
+fun AppScaffold(
+    isDark: Boolean,
+    onThemeChange: (Boolean?) -> Unit
+) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var currentDestination by rememberSaveable { mutableStateOf(AppDestination.HOME) }
 
-    // Map targets state (from HEAD)
+
     var mapTargetLat by rememberSaveable { mutableStateOf<Double?>(null) }
     var mapTargetLon by rememberSaveable { mutableStateOf<Double?>(null) }
     var mapTargetId by rememberSaveable { mutableStateOf<Int?>(null) }
 
-    // Navigation drawer settings (from chiusuraNavbar)
-    val larghezzaMenu = 0.7f //modificare o aumentare per la larghezza del menu
 
-    val lightBlue = Color(0xFFBBDEFB)
+    val larghezzaMenu = 0.7f
 
-    //calcola la larghezza del menu
+
     val configuration = LocalConfiguration.current
     val drawerWidth = (configuration.screenWidthDp * larghezzaMenu).dp
 
@@ -96,7 +97,6 @@ fun AppScaffold() {
                             label = { Text(destination.label) },
                             selected = destination == currentDestination,
                             onClick = {
-                                // Reset map targets if navigating to Map manually (from HEAD)
                                 if (destination == AppDestination.MAP) {
                                     mapTargetLat = null
                                     mapTargetLon = null
@@ -127,7 +127,9 @@ fun AppScaffold() {
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = lightBlue
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     )
                 }
@@ -151,13 +153,16 @@ fun AppScaffold() {
                         targetLon = mapTargetLon,
                         targetId = mapTargetId
                     )
-                    AppDestination.SETTINGS -> SettingsScreen(modifier)
                     AppDestination.RIEPILOGO -> RiepilogoScreen(modifier)
+                    AppDestination.SETTINGS -> SettingsScreen(
+                        modifier = modifier,
+                        isDark = isDark,
+                        onThemeChange = onThemeChange
+                    )
                 }
             }
         }
 
-        //overlay sulla restante parte dello schermo per chiudere il drawer (from chiusuraNavbar)
         if (drawerState.isOpen) {
             Box(
                 modifier = Modifier

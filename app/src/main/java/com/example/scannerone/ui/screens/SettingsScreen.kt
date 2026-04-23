@@ -29,6 +29,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
+    isDark: Boolean,
+    onThemeChange: (Boolean?) -> Unit,
     viewModel: WifiScanViewModel = viewModel(),
     exportImportViewModel: ExportImportViewModel = viewModel()
 ) {
@@ -226,18 +228,27 @@ fun SettingsScreen(
                     Text("Tema App", style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         FilterChip(
-                            selected = selectedTheme == "Chiaro",
-                            onClick = { /* Non fa nulla */ },
+                            selected = !isDark && selectedTheme != "Sistema",
+                            onClick = {
+                                selectedTheme = "Chiaro"
+                                onThemeChange(false)
+                            },
                             label = { Text("Chiaro", fontSize = 10.sp) }
                         )
                         FilterChip(
-                            selected = selectedTheme == "Scuro",
-                            onClick = { /* Non fa nulla */ },
+                            selected = isDark && selectedTheme != "Sistema",
+                            onClick = {
+                                selectedTheme = "Scuro"
+                                onThemeChange(true)
+                            },
                             label = { Text("Scuro", fontSize = 10.sp) }
                         )
                         FilterChip(
                             selected = selectedTheme == "Sistema",
-                            onClick = { /* Non fa nulla */ },
+                            onClick = {
+                                selectedTheme = "Sistema"
+                                onThemeChange(null)
+                            },
                             label = { Text("Sistema", fontSize = 10.sp) }
                         )
                     }

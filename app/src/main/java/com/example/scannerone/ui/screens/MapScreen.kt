@@ -74,7 +74,9 @@ import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
 import org.osmdroid.views.overlay.infowindow.InfoWindow
 import kotlin.random.Random
-
+import android.graphics.ColorMatrixColorFilter
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 
 @Composable
 fun MapScreen(
@@ -175,6 +177,8 @@ fun MapContent(
     targetLon: Double? = null,
     targetId: Int? = null
 ) {
+    val isDark = isSystemInDarkTheme()
+
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var locationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
     val visibleNetworks by viewModel.visibleNetworks.collectAsState()
@@ -221,20 +225,22 @@ fun MapContent(
 
                     overlay.enableMyLocation()
 
+                    if (isDark) {
+                        overlayManager.tilesOverlay.setColorFilter(
+                            ColorMatrixColorFilter(floatArrayOf(
+                                -1.0f, 0f, 0f, 0f, 255f,
+                                0f, -1.0f, 0f, 0f, 255f,
+                                0f, 0f, -1.0f, 0f, 255f,
+                                0f, 0f, 0f, 1.0f, 0f
+                            ))
+                        )
+                    }
+
                     if (targetLat != null && targetLon != null) {
                         val targetPoint = GeoPoint(targetLat, targetLon)
                         controller.setZoom(18.0)
                         controller.setCenter(targetPoint)
-
-                        post {
-                            val limitiMappa = this.boundingBox
-                            viewModel.recuperaRetiInZona(
-                                limitiMappa.actualNorth,
-                                limitiMappa.actualSouth,
-                                limitiMappa.lonEast,
-                                limitiMappa.lonWest
-                            )
-                        }
+                        // ...
                     } else {
                         lastLocation?.let {
                             val lastPoint = GeoPoint(it.latitude, it.longitude)
@@ -298,7 +304,7 @@ fun MapContent(
                     cls.items.clear()
 
                     var targetMarker: Marker? = null
-                    val sharedInfoWindow = BoldInfoWindow(view)
+                    val sharedInfoWindow = BoldInfoWindow(view, isDark)
 
                     for (rete in visibleNetworks) {
                         val lat = rete.realLatitude ?: 0.0
@@ -374,13 +380,12 @@ fun MapContent(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = androidx.compose.ui.graphics.Color.White,
-                        unfocusedContainerColor = androidx.compose.ui.graphics.Color.White,
-                        focusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
-                        unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
-                        focusedTextColor = androidx.compose.ui.graphics.Color.Black,
-                        cursorColor = androidx.compose.ui.graphics.Color.Black,
-                        unfocusedTextColor = androidx.compose.ui.graphics.Color.Black
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent
                     ),
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = "Cerca")
@@ -492,23 +497,28 @@ private fun personalizzaIconaCluster(newClusterer: RadiusMarkerClusterer){
         textAlign = Paint.Align.CENTER
     }
 }
-class BoldInfoWindow(mapView: MapView) : InfoWindow(
+// 🚀 AGGIUNGI "val isDark: Boolean" COME PARAMETRO
+class BoldInfoWindow(mapView: MapView, val isDark: Boolean) : InfoWindow(
     LinearLayout(mapView.context).apply {
         isClickable = false
         isFocusable = false
         orientation = LinearLayout.VERTICAL
         setPadding(24, 12, 24, 12)
-        setBackgroundColor(Color.WHITE)
+
+        // Usa la variabile "isDark" ricevuta in ingresso
+        setBackgroundColor(if (isDark) android.graphics.Color.DKGRAY else android.graphics.Color.WHITE)
 
         addView(TextView(context).apply {
             tag = "ssid"
             setTypeface(null, Typeface.BOLD)
             textSize = 14f
+            // Il titolo deve essere bianco su sfondo scuro
+            setTextColor(if (isDark) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
         })
         addView(TextView(context).apply {
             tag = "bssid"
             textSize = 12f
-            setTextColor(Color.GRAY)
+            setTextColor(if (isDark) android.graphics.Color.LTGRAY else android.graphics.Color.GRAY)
         })
     }, mapView
 ) {
