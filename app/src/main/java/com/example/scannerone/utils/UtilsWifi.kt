@@ -27,3 +27,26 @@ fun categorizeNetwork(ssid: String): NetworkCategory {
         else -> NetworkCategory.OTHER
     }
 }
+
+fun parseSecurityStr(capability : String): String{
+    val capUpper = capability.uppercase()
+    val retVal = when {
+        capUpper.contains("WPA3") || capUpper.contains("OWE") || capUpper.contains("SAE") -> "WPA3"
+        capUpper.contains("WPA2") -> "WPA2"
+        capUpper.contains("WPA-") || capUpper.contains("WPA1") -> "WPA"
+        capUpper.contains("WEP") -> "WEP"
+        capUpper.isEmpty() || capUpper == "[ESS]" || capUpper.contains("OPEN") || capUpper.contains("NONE") -> "Open"
+        else -> "Altro"
+    }
+    return retVal
+}
+fun parseBand(frequency : Int): Float {
+
+    val retVal = when {
+        frequency in 2400..2500 -> 2.4f
+        frequency in 5000..5900 -> 5.0f
+        frequency > 5900 -> 6.0f
+        else -> 0.0f
+    }
+    return retVal
+}
