@@ -29,6 +29,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
+    isDark: Boolean,
+    onThemeChange: (Boolean?) -> Unit,
     viewModel: WifiScanViewModel = viewModel(),
     exportImportViewModel: ExportImportViewModel = viewModel()
 ) {
@@ -182,13 +184,13 @@ fun SettingsScreen(
         // ---- Personalizzazione (Lingua e Tema) ----
         Card(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Personalizzazione (fanno schifo vabbè)",
+                    "Personalizzazione",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = MaterialTheme.colorScheme.primary
                 )
                 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -226,18 +228,27 @@ fun SettingsScreen(
                     Text("Tema App", style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         FilterChip(
-                            selected = selectedTheme == "Chiaro",
-                            onClick = { /* Non fa nulla */ },
+                            selected = !isDark && selectedTheme != "Sistema",
+                            onClick = {
+                                selectedTheme = "Chiaro"
+                                onThemeChange(false)
+                            },
                             label = { Text("Chiaro", fontSize = 10.sp) }
                         )
                         FilterChip(
-                            selected = selectedTheme == "Scuro",
-                            onClick = { /* Non fa nulla */ },
+                            selected = isDark && selectedTheme != "Sistema",
+                            onClick = {
+                                selectedTheme = "Scuro"
+                                onThemeChange(true)
+                            },
                             label = { Text("Scuro", fontSize = 10.sp) }
                         )
                         FilterChip(
                             selected = selectedTheme == "Sistema",
-                            onClick = { /* Non fa nulla */ },
+                            onClick = {
+                                selectedTheme = "Sistema"
+                                onThemeChange(null)
+                            },
                             label = { Text("Sistema", fontSize = 10.sp) }
                         )
                     }

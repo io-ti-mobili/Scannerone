@@ -95,7 +95,7 @@ fun ChartCard(title: String, action: (@Composable () -> Unit)? = null, content: 
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -306,25 +306,55 @@ fun LineChart(
             }
         }
         
-        // X-axis
-        Row(modifier = Modifier.fillMaxWidth().padding(start = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            data.forEach {
-                Text(it.first, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // X-axis: at most 5 evenly-spaced labels
+        val maxLabels = 5
+        val xLabels: List<String> = if (data.size <= maxLabels) {
+            data.map { formatXLabel(it.first) }
+        } else {
+            // pick indices evenly spread across [0, data.size-1]
+            val step = (data.size - 1).toDouble() / (maxLabels - 1)
+            (0 until maxLabels).map { i ->
+                val idx = (i * step).toInt().coerceIn(0, data.size - 1)
+                formatXLabel(data[idx].first)
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            xLabels.forEach {
+                Text(it, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
+/** Formatta una label dell'asse X:
+ *  - Se contiene un orario (HH:MM o HH:MM ...), lo arrotonda a HH:00.
+ *  - Altrimenti restituisce la label invariata.
+ */
+private fun formatXLabel(raw: String): String {
+    // Regex: cerca pattern HH:MM (con cifre alle 0-posizione)
+    val timeRegex = Regex("""\b(\d{1,2}):(\d{2})\b""")
+    return timeRegex.replace(raw) { mr ->
+        val hour = mr.groupValues[1].padStart(2, '0')
+        "$hour:00"
+    }
+}
+
 @Composable
 fun DashboardCard(
-    title: String, 
-    value: String, 
-    icon: ImageVector, 
+    title: String,
+    value: String,
+    icon: ImageVector,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    iconColor: Color = MaterialTheme.colorScheme.primary
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    iconColor: Color = contentColor            // icona sempre identica al testo, non separata
 ) {
     Card(
         modifier = modifier,
@@ -333,15 +363,39 @@ fun DashboardCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(title, style = MaterialTheme.typography.labelMedium, color = contentColor)
+                // Icona: stesso colore del testo, opacità 64% — presente ma discreta
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = iconColor.copy(alpha = 0.64f),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                // Titolo: leggero, 60% opacità
+                Text(
+                    title,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = contentColor.copy(alpha = 0.60f),
+                    fontWeight = FontWeight.Medium
+                )
             }
-            Spacer(Modifier.height(8.dp))
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = contentColor)
+            Spacer(Modifier.height(10.dp))
+            // Valore: piena opacità, bold — è il dato principale
+            Text(
+                value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = contentColor
+            )
             if (subtitle != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = contentColor.copy(alpha = 0.7f), fontSize = 10.sp)
+                Spacer(Modifier.height(3.dp))
+                // Sottotitolo: 45% opacità — contestuale, non invadente
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.45f),
+                    fontSize = 10.sp
+                )
             }
         }
     }

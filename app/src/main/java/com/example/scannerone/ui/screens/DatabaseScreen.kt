@@ -100,8 +100,15 @@ fun DatabaseScreen(
 
             // 2. BLOCCO RICERCA E FILTRI
             item {
-                Column(
+                Card(
                     modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
@@ -178,6 +185,7 @@ fun DatabaseScreen(
                             Text("Azzera")
                         }
                     }
+                }
                 }
             }
 
