@@ -74,7 +74,7 @@ class WifiForegroundService : Service() {
 
         serviceScope.launch {
             val db = AppDatabase.getDatabase(applicationContext)
-            val scanRepository = NetworkRepository(db.networkDao())
+            val scanRepository = NetworkRepository(db.networkDao(), db.searchDao())
             val sessionRepository = SessionRepository(db.sessionDao())
             val scanService = WifiScanServiceImpl(applicationContext)
             val gpsService = LocationManagerGPSServiceImplV4(applicationContext)

@@ -41,7 +41,7 @@ data class StrategyConfig(
 class WifiScanViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getDatabase(application)
-    private val scanRepository = NetworkRepository(db.networkDao())
+    private val scanRepository = NetworkRepository(db.networkDao(), db.searchDao())
     private val searchRepository = SearchRepository(db.searchDao())
     private val sessionRepository = SessionRepository(db.sessionDao())
 
