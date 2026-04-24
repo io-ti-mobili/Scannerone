@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -23,6 +24,8 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Update
+import kotlinx.coroutines.launch
+import androidx.compose.ui.text.font.FontWeight
 import java.util.Locale
 import kotlin.math.ceil
 
@@ -50,6 +53,10 @@ fun DatabaseScreen(
     var secDropdownExpanded by remember { mutableStateOf(false) }
     val secOptions = listOf("Tutte", "WPA3", "WPA2", "WPA", "WEP", "Open")
     var selectedSecurity by remember { mutableStateOf("Tutte") }
+
+    val coroutineScope = rememberCoroutineScope()
+    var infoDialogNetwork by remember { mutableStateOf<com.example.scannerone.entities.WifiNetwork?>(null) }
+    var infoScanCount by remember { mutableStateOf(0) }
 
     val context = LocalContext.current
 
@@ -235,23 +242,13 @@ fun DatabaseScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Freq: ${net.frequency} MHz",
+                                        text = "Frequenza: ${net.frequencyBand} GHz",
                                         style = MaterialTheme.typography.bodySmall
                                     )
-                                    if (net.realLatitude != null && net.realLongitude != null) {
-                                        val latFmt = String.format(Locale.getDefault(), "%.5f", net.realLatitude)
-                                        val lonFmt = String.format(Locale.getDefault(), "%.5f", net.realLongitude)
-                                        val accFmt = net.estAccuracy?.toInt()?.toString() ?: "?"
-                                        Text(
-                                            text = "Pos: $latFmt, $lonFmt (±${accFmt}m)",
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    } else {
-                                        Text(
-                                            text = "Posizione: In elaborazione...",
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
+                                    Text(
+                                        text = "Tipo: ${net.capabilities}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                             }
 
@@ -287,6 +284,24 @@ fun DatabaseScreen(
                                             }
                                         )
                                     }
+
+                                    DropdownMenuItem(
+                                        text = { Text("Info Rete") },
+                                        leadingIcon = {
+                                            Icon(
+                                                androidx.compose.material.icons.Icons.Default.Info,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            infoDialogNetwork = net
+                                            coroutineScope.launch {
+                                                infoScanCount = viewModel.getNetworkScanCount(net.id)
+                                            }
+                                        }
+                                    )
 
                                     DropdownMenuItem(
                                         text = { Text("Elimina Rete", color = MaterialTheme.colorScheme.error) },
@@ -378,5 +393,50 @@ fun DatabaseScreen(
                 }
             }
         }
+    }
+
+    // --- POPUP INFO RETE ---
+    if (infoDialogNetwork != null) {
+        val net = infoDialogNetwork!!
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { infoDialogNetwork = null },
+            title = {
+                Text(text = "Dettagli Rete", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("SSID: ${net.ssid}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text("MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
+                    Text("Frequenza: ${net.frequencyBand} GHz (${net.frequency} MHz)", style = MaterialTheme.typography.bodyMedium)
+                    Text("Sicurezza: ${net.security}", style = MaterialTheme.typography.bodyMedium)
+                    Text("Capabilities: ${net.capabilities}", style = MaterialTheme.typography.bodyMedium)
+                    Text("Categoria: ${net.category}", style = MaterialTheme.typography.bodyMedium)
+                    
+                    androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    
+                    if (net.realLatitude != null && net.realLongitude != null) {
+                        Text("Posizione Stimata:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text("Lat: ${net.realLatitude}", style = MaterialTheme.typography.bodyMedium)
+                        Text("Lon: ${net.realLongitude}", style = MaterialTheme.typography.bodyMedium)
+                        Text("Accuratezza: ±${net.estAccuracy?.toInt() ?: "?"} m", style = MaterialTheme.typography.bodyMedium)
+                        if (net.realCity != null) {
+                            Text("Indirizzo: ${net.realStreet ?: ""} ${net.realCity}", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    } else {
+                        Text("Posizione: Ancora in elaborazione o dati insufficienti.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                    }
+
+                    androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Text("Statistiche:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text("Scansioni totali (storico): $infoScanCount", style = MaterialTheme.typography.bodyMedium)
+                }
+            },
+            confirmButton = {
+                Button(onClick = { infoDialogNetwork = null }) {
+                    Text("Chiudi")
+                }
+            }
+        )
     }
 }

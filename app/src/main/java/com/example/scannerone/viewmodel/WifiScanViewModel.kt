@@ -206,6 +206,12 @@ class WifiScanViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    suspend fun getNetworkScanCount(networkId: Int): Int {
+        return withContext(Dispatchers.IO) {
+            db.networkDao().getScanCountForNetwork(networkId)
+        }
+    }
+
     /**
      * Genera una sessione finta con piu scansioni per testare i grafici e la Hall of Fame.
      * @param startTime Tempo di inizio (default 30 min fa)
