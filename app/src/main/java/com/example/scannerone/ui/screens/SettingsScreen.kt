@@ -184,13 +184,13 @@ fun SettingsScreen(
         // ---- Personalizzazione (Lingua e Tema) ----
         Card(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Personalizzazione (fanno schifo vabbè)",
+                    "Personalizzazione",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = MaterialTheme.colorScheme.primary
                 )
                 
                 Spacer(modifier = Modifier.height(12.dp))

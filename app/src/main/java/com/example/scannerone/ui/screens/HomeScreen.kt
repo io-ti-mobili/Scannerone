@@ -60,9 +60,6 @@ fun HomeScreen(
             fontWeight = FontWeight.Bold
         )
 
-        // --- SEZIONE NUMERI IN EVIDENZA ---
-        Text("Numeri in evidenza", style = MaterialTheme.typography.titleMedium)
-        
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
                 title = "Reti Uniche",
@@ -112,9 +109,7 @@ fun HomeScreen(
                 subtitle = "In data: $date1",
                 icon = Icons.Default.Timer,
                 modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                iconColor = MaterialTheme.colorScheme.onSecondaryContainer
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
 
             val mostDist = hallOfFame.mostDistanceSession
@@ -127,9 +122,7 @@ fun HomeScreen(
                 subtitle = "In data: $date2",
                 icon = Icons.Default.DirectionsWalk,
                 modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                iconColor = MaterialTheme.colorScheme.onSecondaryContainer
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
         }
         
@@ -143,9 +136,7 @@ fun HomeScreen(
                 subtitle = "In data: $date3",
                 icon = Icons.Default.WifiFind,
                 modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                iconColor = MaterialTheme.colorScheme.onSecondaryContainer
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
             
             Spacer(modifier = Modifier.weight(1f)) // "Come se ci fosse un quarto elemento"

@@ -120,7 +120,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 startTime = snappedNow - (22 * hourMs),
                 numSteps = 12,
                 bucketSize = 2 * hourMs,
-                formatPattern = "HH'h'",
+                formatPattern = "HH:mm",
                 endTime = snappedNow + (2 * hourMs)
             )
             TimeFilter.LAST_7_DAYS -> TrendParams(

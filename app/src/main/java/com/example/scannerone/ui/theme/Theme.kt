@@ -12,31 +12,58 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+// Tema scuro — sfumature di bianco su sfondo VS Code
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryDark,
-    secondary = Color(0xFF03DAC6),
-    background = Color(0xFF121212),
-    surface = Color(0xFF121212),
-    onPrimary = Color.Black,
-    onBackground = Color.White,
-    onSurface = Color.White
+    primary             = MonoDarkPrimary,          // #ECECEC quasi bianco
+    secondary           = MonoDarkSecondary,         // #B0B0B0 grigio medio
+    tertiary            = MonoDarkTertiary,          // #787878 grigio hint
+    background          = VsBackground,             // #1E1E1E
+    surface             = VsSurface,                // #252526
+    surfaceVariant      = VsSurfaceVariant,         // #2D2D30
+    onPrimary           = VsBackground,             // testo su bottoni primarycolor
+    onSecondary         = VsBackground,
+    onTertiary          = MonoDarkOnBackground,
+    onBackground        = MonoDarkOnBackground,     // #D4D4D4
+    onSurface           = MonoDarkOnSurface,        // #CCCCCC
+    onSurfaceVariant    = MonoDarkOnSurfaceVariant, // #9E9E9E
+    outline             = VsBorder,                 // #3E3E42
+    outlineVariant      = VsBorder.copy(alpha = 0.4f),
+    error               = VsError,                  // #F44747
+    onError             = Color.White,
+    secondaryContainer  = VsSurfaceHighlight,       // #37373D
+    onSecondaryContainer = MonoDarkOnBackground,
+    tertiaryContainer   = VsSurfaceVariant,
+    onTertiaryContainer = MonoDarkSecondary
 )
 
+// Tema chiaro — sfumature di nero su sfondo off-white
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryLight,
-    secondary = Color(0xFF03DAC6),
-    background = Color.White,
-    surface = Color.White,
-    onPrimary = Color.White,
-    onBackground = Color.Black,
-    onSurface = Color.Black
+    primary             = MonoLightPrimary,         // #1A1A1A quasi nero
+    secondary           = MonoLightSecondary,        // #424242
+    tertiary            = MonoLightTertiary,         // #757575
+    background          = MonoLightBackground,      // #F5F5F5 off-white
+    surface             = MonoLightSurface,         // #FFFFFF
+    surfaceVariant      = MonoLightSurfaceVariant,  // #EEEEEE
+    onPrimary           = Color.White,
+    onSecondary         = Color.White,
+    onTertiary          = Color.White,
+    onBackground        = MonoLightPrimary,
+    onSurface           = MonoLightSecondary,
+    onSurfaceVariant    = MonoLightTertiary,
+    outline             = MonoLightBorder,
+    outlineVariant      = MonoLightBorder.copy(alpha = 0.5f),
+    error               = Color(0xFFB00020),
+    onError             = Color.White,
+    secondaryContainer  = MonoLightSurfaceVariant,
+    onSecondaryContainer = MonoLightPrimary,
+    tertiaryContainer   = Color(0xFFE0E0E0),
+    onTertiaryContainer = MonoLightSecondary
 )
 
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -44,7 +71,6 @@ fun MyApplicationTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
