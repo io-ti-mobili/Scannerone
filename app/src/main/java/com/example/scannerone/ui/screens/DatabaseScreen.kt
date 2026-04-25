@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.scannerone.viewmodel.WifiScanViewModel
+import com.example.scannerone.viewmodel.DatabaseViewModel
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.History
@@ -33,7 +33,7 @@ import kotlin.math.ceil
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun DatabaseScreen(
     modifier: Modifier = Modifier,
-    viewModel: WifiScanViewModel = viewModel(),
+    viewModel: DatabaseViewModel = viewModel(),
     onOpenMap: (Double, Double, Int) -> Unit = { _, _, _ -> }
 ) {
     val networks by viewModel.networks.collectAsState()
@@ -43,8 +43,6 @@ fun DatabaseScreen(
     val canGoNextPage by viewModel.canGoNextPage.collectAsState()
     val totalFilteredNetworks by viewModel.totalFilteredNetworks.collectAsState()
     val isPagingBusy by viewModel.isPagingBusy.collectAsState()
-    val draftConfig by viewModel.draftConfig.collectAsState()
-    val appliedConfig by viewModel.config.collectAsState()
 
     var searchAddress by remember { mutableStateOf("") }
     var searchSsid by remember { mutableStateOf("") }

@@ -53,6 +53,7 @@ import androidx.compose.foundation.layout.size
 @Composable
 fun AppScaffold(
     isDark: Boolean,
+    themePreference: Boolean?,
     onThemeChange: (Boolean?) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -157,6 +158,7 @@ fun AppScaffold(
                     AppDestination.SETTINGS -> SettingsScreen(
                         modifier = modifier,
                         isDark = isDark,
+                        themePreference = themePreference,
                         onThemeChange = onThemeChange
                     )
                 }

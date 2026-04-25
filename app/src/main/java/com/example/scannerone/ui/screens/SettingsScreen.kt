@@ -19,7 +19,7 @@ import com.example.scannerone.io.ExportSelection
 import com.example.scannerone.io.ExportState
 import com.example.scannerone.io.ImportState
 import com.example.scannerone.viewmodel.ExportImportViewModel
-import com.example.scannerone.viewmodel.WifiScanViewModel
+import com.example.scannerone.viewmodel.StrategyViewModel
 import com.example.scannerone.viewmodel.StrategyType
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -30,8 +30,9 @@ import java.time.format.DateTimeFormatter
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     isDark: Boolean,
+    themePreference: Boolean?,
     onThemeChange: (Boolean?) -> Unit,
-    viewModel: WifiScanViewModel = viewModel(),
+    viewModel: StrategyViewModel = viewModel(),
     exportImportViewModel: ExportImportViewModel = viewModel()
 ) {
     val draftConfig by viewModel.draftConfig.collectAsState()
@@ -115,7 +116,16 @@ fun SettingsScreen(
     val systemInDark = androidx.compose.foundation.isSystemInDarkTheme()
     
     var selectedLanguage by remember { mutableStateOf(initialLang) }
-    var selectedTheme by remember { mutableStateOf("Sistema") }
+    // Inizializza dal DataStore: null=Sistema, true=Scuro, false=Chiaro
+    var selectedTheme by remember {
+        mutableStateOf(
+            when (themePreference) {
+                true  -> "Scuro"
+                false -> "Chiaro"
+                null  -> "Sistema"
+            }
+        )
+    }
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
 

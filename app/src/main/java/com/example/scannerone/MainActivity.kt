@@ -5,28 +5,35 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.scannerone.repository.SettingsRepository
 import com.example.scannerone.ui.AppScaffold
 import com.example.scannerone.ui.theme.MyApplicationTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        val settingsRepository = SettingsRepository(applicationContext)
+
         setContent {
-            var themePreference by remember { mutableStateOf<Boolean?>(null) }
+            val themePreference by settingsRepository.themeFlow
+                .collectAsState(initial = null)
 
-
+            val scope = rememberCoroutineScope()
             val isDark = themePreference ?: isSystemInDarkTheme()
 
             MyApplicationTheme(darkTheme = isDark) {
                 AppScaffold(
                     isDark = isDark,
-                    onThemeChange = { nuovaScelta -> themePreference = nuovaScelta }
+                    themePreference = themePreference,
+                    onThemeChange = { nuovaScelta ->
+                        scope.launch { settingsRepository.saveTheme(nuovaScelta) }
+                    }
                 )
             }
         }

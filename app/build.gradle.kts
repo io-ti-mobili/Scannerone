@@ -81,6 +81,9 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // DataStore Preferences (persistenza impostazioni)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("com.github.MKergall:osmbonuspack:6.9.0")
     implementation("androidx.compose.material:material-icons-extended")
