@@ -22,6 +22,7 @@ class SettingsRepository(private val context: Context) {
         private val KEY_USE_RANSAC      = booleanPreferencesKey("use_ransac")
         private val KEY_USE_GPS_WEIGHT  = booleanPreferencesKey("use_gps_weight")
         private val KEY_THEME           = stringPreferencesKey("theme_preference") // "LIGHT" | "DARK" | "SYSTEM"
+        private val KEY_USER_UUID       = stringPreferencesKey("user_uuid")
     }
 
     // ---- StrategyConfig ----
@@ -64,5 +65,21 @@ class SettingsRepository(private val context: Context) {
                 null  -> "SYSTEM"
             }
         }
+    }
+
+    // ---- UUID ----
+
+    suspend fun getUserUuid(): String {
+        var uuid = ""
+        context.settingsDataStore.edit { prefs ->
+            val current = prefs[KEY_USER_UUID]
+            if (current == null) {
+                uuid = java.util.UUID.randomUUID().toString()
+                prefs[KEY_USER_UUID] = uuid
+            } else {
+                uuid = current
+            }
+        }
+        return uuid
     }
 }

@@ -52,11 +52,11 @@ private val LightColorScheme = lightColorScheme(
     onSurfaceVariant    = MonoLightTertiary,
     outline             = MonoLightBorder,
     outlineVariant      = MonoLightBorder.copy(alpha = 0.5f),
-    error               = Color(0xFFB00020),
+    error               = MonoLightError,
     onError             = Color.White,
     secondaryContainer  = MonoLightSurfaceVariant,
     onSecondaryContainer = MonoLightPrimary,
-    tertiaryContainer   = Color(0xFFE0E0E0),
+    tertiaryContainer   = Color(0xFFE5E5E5),
     onTertiaryContainer = MonoLightSecondary
 )
 

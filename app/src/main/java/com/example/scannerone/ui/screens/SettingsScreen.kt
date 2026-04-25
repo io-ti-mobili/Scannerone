@@ -5,6 +5,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +39,7 @@ fun SettingsScreen(
 ) {
     val draftConfig by viewModel.draftConfig.collectAsState()
     val appliedConfig by viewModel.config.collectAsState()
+    val userUuid by viewModel.userUuid.collectAsState()
 
     val exportState by exportImportViewModel.exportState.collectAsState()
     val importState by exportImportViewModel.importState.collectAsState()
@@ -127,7 +130,12 @@ fun SettingsScreen(
         )
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
 
         // ---- Configurazione Motore Matematico ----
         Card(
@@ -262,6 +270,42 @@ fun SettingsScreen(
                             label = { Text("Sistema", fontSize = 10.sp) }
                         )
                     }
+                }
+            }
+        }
+
+        // ---- Sincronizzazione Web ----
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    "Sincronizzazione Web",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    "Identificativo Utente (UUID):",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Text(
+                    text = userUuid.ifEmpty { "Generazione in corso..." },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = { /* TODO: Caricamento sul sito */ },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Sincronizza Dati sul Sito")
                 }
             }
         }

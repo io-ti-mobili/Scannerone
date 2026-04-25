@@ -19,10 +19,11 @@ val MonoDarkOnSurface       = Color(0xFFADADAD)  // testo su superfici ← calib
 val MonoDarkOnSurfaceVariant= Color(0xFF858585)  // testo secondario su variante
 
 // ── Scala monocromatica — Light theme (nero → grigio chiaro) ─────────────────
-val MonoLightPrimary        = Color(0xFF1A1A1A)  // quasi nero — icone, titoli
-val MonoLightSecondary      = Color(0xFF424242)  // grigio scuro
-val MonoLightTertiary       = Color(0xFF757575)  // grigio medio
-val MonoLightBackground     = Color(0xFFF5F5F5)  // sfondo off-white
+val MonoLightPrimary        = Color(0xFF3B3B3B)  // grigio molto scuro ma non nero totale
+val MonoLightSecondary      = Color(0xFF5A5A5A)  // grigio scuro
+val MonoLightTertiary       = Color(0xFF8B8B8B)  // grigio medio
+val MonoLightBackground     = Color(0xFFF9F9F9)  // sfondo off-white morbido
 val MonoLightSurface        = Color(0xFFFFFFFF)
-val MonoLightSurfaceVariant = Color(0xFFEEEEEE)
-val MonoLightBorder         = Color(0xFFBDBDBD)
+val MonoLightSurfaceVariant = Color(0xFFF0F0F0)
+val MonoLightBorder         = Color(0xFFD1D1D1)
+val MonoLightError          = Color(0xFFCC5A5A)  // rosso desaturato e più elegante

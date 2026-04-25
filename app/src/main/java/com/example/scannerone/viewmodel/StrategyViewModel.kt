@@ -27,6 +27,9 @@ class StrategyViewModel(application: Application) : AndroidViewModel(application
     private val _draftConfig = MutableStateFlow(StrategyConfig())
     val draftConfig = _draftConfig.asStateFlow()
 
+    private val _userUuid = MutableStateFlow("")
+    val userUuid = _userUuid.asStateFlow()
+
     init {
         // Carica la config persistita e sincronizza entrambi gli stati
         viewModelScope.launch {
@@ -34,6 +37,7 @@ class StrategyViewModel(application: Application) : AndroidViewModel(application
             _config.value      = saved
             _draftConfig.value = saved
             networkRepo.config = saved
+            _userUuid.value    = settingsRepo.getUserUuid()
         }
     }
 
