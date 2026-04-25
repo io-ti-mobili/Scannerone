@@ -130,7 +130,6 @@ class NetworkRepository(private val networkDao: NetworkDao, private val searchDa
         val network = WifiNetwork(
             bssid = bssid,
             ssid = ssid,
-            capabilities = capabilities,
             frequency = frequency,
             category = cat,
             security = securityStr,

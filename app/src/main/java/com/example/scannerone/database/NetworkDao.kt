@@ -14,6 +14,9 @@ interface NetworkDao {
     @Query("SELECT * FROM wifi_networks")
     fun getAllNetworks(): Flow<List<WifiNetwork>>
 
+    @Query("SELECT * FROM wifi_networks")
+    suspend fun getAllNetworksSync(): List<WifiNetwork>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertNetwork(network: WifiNetwork): Long
 

@@ -8,7 +8,7 @@ import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.entities.WifiScanRecord
 import com.example.scannerone.entities.ScanSession
 
-@Database(entities = [WifiNetwork::class, WifiScanRecord::class, ScanSession::class], version = 6, exportSchema = false)
+@Database(entities = [WifiNetwork::class, WifiScanRecord::class, ScanSession::class], version = 7, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun networkDao(): NetworkDao
     abstract fun searchDao(): SearchDao

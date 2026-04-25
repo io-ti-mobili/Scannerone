@@ -23,6 +23,7 @@ class SettingsRepository(private val context: Context) {
         private val KEY_USE_GPS_WEIGHT  = booleanPreferencesKey("use_gps_weight")
         private val KEY_THEME           = stringPreferencesKey("theme_preference") // "LIGHT" | "DARK" | "SYSTEM"
         private val KEY_USER_UUID       = stringPreferencesKey("user_uuid")
+        private val KEY_USERNAME        = stringPreferencesKey("username")
     }
 
     // ---- StrategyConfig ----
@@ -81,5 +82,17 @@ class SettingsRepository(private val context: Context) {
             }
         }
         return uuid
+    }
+
+    // ---- Username ----
+
+    val usernameFlow: Flow<String> = context.settingsDataStore.data.map { prefs ->
+        prefs[KEY_USERNAME] ?: ""
+    }
+
+    suspend fun saveUsername(username: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_USERNAME] = username
+        }
     }
 }

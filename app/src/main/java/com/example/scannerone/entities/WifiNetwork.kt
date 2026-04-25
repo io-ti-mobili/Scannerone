@@ -13,7 +13,6 @@ data class WifiNetwork(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val bssid: String,
     val ssid: String,
-    val capabilities: String,
     val frequency: Int,
     val realLatitude: Double? = null,
     val realLongitude: Double? = null,

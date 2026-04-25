@@ -7,6 +7,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +27,8 @@ import com.example.scannerone.io.ImportState
 import com.example.scannerone.viewmodel.ExportImportViewModel
 import com.example.scannerone.viewmodel.StrategyViewModel
 import com.example.scannerone.viewmodel.StrategyType
+import com.example.scannerone.viewmodel.UploadState
+import com.example.scannerone.viewmodel.UploadViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -35,16 +41,24 @@ fun SettingsScreen(
     themePreference: Boolean?,
     onThemeChange: (Boolean?) -> Unit,
     viewModel: StrategyViewModel = viewModel(),
-    exportImportViewModel: ExportImportViewModel = viewModel()
+    exportImportViewModel: ExportImportViewModel = viewModel(),
+    uploadViewModel: UploadViewModel = viewModel()
 ) {
     val draftConfig by viewModel.draftConfig.collectAsState()
     val appliedConfig by viewModel.config.collectAsState()
-    val userUuid by viewModel.userUuid.collectAsState()
+
+    val userUuid by uploadViewModel.userUuid.collectAsState()
+    val username by uploadViewModel.username.collectAsState()
+    val uploadState by uploadViewModel.uploadState.collectAsState()
 
     val exportState by exportImportViewModel.exportState.collectAsState()
     val importState by exportImportViewModel.importState.collectAsState()
 
     val context = LocalContext.current
+
+    // ---- Stato edit username ----
+    var isEditingUsername by remember { mutableStateOf(false) }
+    var draftUsername by remember { mutableStateOf("") }
 
     // ---- Stato dialoghi ----
     var showExportDialog by remember { mutableStateOf(false) }
@@ -108,6 +122,21 @@ fun SettingsScreen(
             is ImportState.Error -> {
                 Toast.makeText(context, "Errore import: ${state.message}", Toast.LENGTH_LONG).show()
                 exportImportViewModel.resetImportState()
+            }
+            else -> {}
+        }
+    }
+
+    // ---- Feedback stato upload ----
+    LaunchedEffect(uploadState) {
+        when (val state = uploadState) {
+            is UploadState.Success -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                uploadViewModel.resetUploadState()
+            }
+            is UploadState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                uploadViewModel.resetUploadState()
             }
             else -> {}
         }
@@ -288,6 +317,44 @@ fun SettingsScreen(
                 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                OutlinedTextField(
+                    value = if (isEditingUsername) draftUsername else username,
+                    onValueChange = { if (isEditingUsername) draftUsername = it },
+                    label = { Text("Username") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    readOnly = !isEditingUsername,
+                    trailingIcon = {
+                        if (isEditingUsername) {
+                            Row {
+                                IconButton(
+                                    onClick = {
+                                        uploadViewModel.saveUsername(draftUsername)
+                                        isEditingUsername = false
+                                    },
+                                    enabled = draftUsername.isNotBlank()
+                                ) {
+                                    Icon(Icons.Default.Check, contentDescription = "Salva username", tint = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(
+                                    onClick = { isEditingUsername = false }
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "Annulla", tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        } else {
+                            IconButton(onClick = {
+                                draftUsername = username
+                                isEditingUsername = true
+                            }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Modifica username", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     "Identificativo Utente (UUID):",
                     style = MaterialTheme.typography.bodySmall,
@@ -302,10 +369,23 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Button(
-                    onClick = { /* TODO: Caricamento sul sito */ },
-                    modifier = Modifier.fillMaxWidth()
+                    onClick = { uploadViewModel.uploadNetworks() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = uploadState !is UploadState.Loading && username.isNotBlank()
                 ) {
-                    Text("Sincronizza Dati sul Sito")
+                    if (uploadState is UploadState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Sincronizzazione in corso...")
+                    } else if (username.isBlank()) {
+                        Text("Imposta un Username per Sincronizzare")
+                    } else {
+                        Text("Sincronizza Dati sul Sito")
+                    }
                 }
             }
         }

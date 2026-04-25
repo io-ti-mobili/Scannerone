@@ -244,7 +244,7 @@ fun DatabaseScreen(
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     Text(
-                                        text = "Tipo: ${net.capabilities}",
+                                        text = "Tipo: ${net.security}",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -407,7 +407,6 @@ fun DatabaseScreen(
                     Text("MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
                     Text("Frequenza: ${net.frequencyBand} GHz (${net.frequency} MHz)", style = MaterialTheme.typography.bodyMedium)
                     Text("Sicurezza: ${net.security}", style = MaterialTheme.typography.bodyMedium)
-                    Text("Capabilities: ${net.capabilities}", style = MaterialTheme.typography.bodyMedium)
                     Text("Categoria: ${net.category}", style = MaterialTheme.typography.bodyMedium)
                     
                     androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

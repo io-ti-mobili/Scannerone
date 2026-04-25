@@ -14,7 +14,7 @@ interface SearchDao {
         WHERE (:ssid = '' OR ssid LIKE '%' || :ssid || '%')
         AND (:bssid = '' OR bssid LIKE '%' || :bssid || '%')
         AND (:address = '' OR realCity LIKE '%' || :address || '%' OR realStreet LIKE '%' || :address || '%' OR realRegion LIKE '%' || :address || '%')
-        AND (:security = 'Tutte' OR capabilities LIKE '%' || :security || '%')
+        AND (:security = 'Tutte' OR security = :security)
         ORDER BY id DESC LIMIT 500
         """
     )
@@ -31,7 +31,7 @@ interface SearchDao {
         WHERE (:ssid = '' OR ssid LIKE '%' || :ssid || '%')
         AND (:bssid = '' OR bssid LIKE '%' || :bssid || '%')
         AND (:address = '' OR realCity LIKE '%' || :address || '%' OR realStreet LIKE '%' || :address || '%' OR realRegion LIKE '%' || :address || '%')
-        AND (:security = 'Tutte' OR capabilities LIKE '%' || :security || '%')
+        AND (:security = 'Tutte' OR security = :security)
         ORDER BY id DESC
         LIMIT :limit OFFSET :offset
         """
@@ -51,7 +51,7 @@ interface SearchDao {
         WHERE (:ssid = '' OR ssid LIKE '%' || :ssid || '%')
         AND (:bssid = '' OR bssid LIKE '%' || :bssid || '%')
         AND (:address = '' OR realCity LIKE '%' || :address || '%' OR realStreet LIKE '%' || :address || '%' OR realRegion LIKE '%' || :address || '%')
-        AND (:security = 'Tutte' OR capabilities LIKE '%' || :security || '%')
+        AND (:security = 'Tutte' OR security = :security)
         """
     )
     fun countNetworksAdvancedFiltered(
@@ -67,7 +67,7 @@ interface SearchDao {
         WHERE (:ssid = '' OR ssid LIKE '%' || :ssid || '%')
         AND (:bssid = '' OR bssid LIKE '%' || :bssid || '%')
         AND (:address = '' OR realCity LIKE '%' || :address || '%' OR realStreet LIKE '%' || :address || '%' OR realRegion LIKE '%' || :address || '%')
-        AND (:security = 'Tutte' OR capabilities LIKE '%' || :security || '%')
+        AND (:security = 'Tutte' OR security = :security)
         ORDER BY id DESC
         LIMIT 1 OFFSET :offset
         """
