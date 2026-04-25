@@ -1,3 +1,224 @@
 <resources>
     <string name="app_name">Scannerone</string>
+
+    <!-- App shell -->
+    <string name="app_menu_title">Menu</string>
+    <string name="cd_open_menu">Open menu</string>
+    <string name="destination_home">Home</string>
+    <string name="destination_database">Database</string>
+    <string name="destination_wifi_scan">Wi-Fi Scan</string>
+    <string name="destination_map">Map</string>
+    <string name="destination_summary">Summary</string>
+    <string name="destination_settings">Settings</string>
+
+    <!-- Common -->
+    <string name="common_ssid">SSID</string>
+    <string name="common_bssid">BSSID</string>
+    <string name="common_security">Security</string>
+    <string name="common_search">Search</string>
+    <string name="common_reset">Reset</string>
+    <string name="common_previous">Previous</string>
+    <string name="common_next">Next</string>
+    <string name="common_statistics">Statistics:</string>
+    <string name="common_close">Close</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_clear">Clear</string>
+    <string name="common_error_unknown">Unknown error</string>
+    <string name="common_networks">Networks</string>
+    <string name="common_sessions">Sessions</string>
+    <string name="common_scans">Scans</string>
+    <string name="common_other">Other</string>
+    <string name="common_distance_km_format">%.2f km</string>
+
+    <!-- Database screen -->
+    <string name="database_security_all">All</string>
+    <string name="database_security_open">Open</string>
+    <string name="database_toast_mock_yearly">Yearly mock generated</string>
+    <string name="database_cd_mock_year">Generate yearly mock</string>
+    <string name="database_toast_mock_monthly">Monthly mock generated</string>
+    <string name="database_cd_mock_month">Generate monthly mock</string>
+    <string name="database_toast_mock_weekly">Weekly mock generated</string>
+    <string name="database_cd_mock_week">Generate weekly mock</string>
+    <string name="database_toast_mock_hour">Hourly mock generated</string>
+    <string name="database_mock_hour">Hourly mock</string>
+    <string name="database_search_address_country">Address/Country search</string>
+    <string name="database_no_network_found">No network found.</string>
+    <string name="database_label_ssid">SSID: %1$s</string>
+    <string name="database_label_mac">MAC: %1$s</string>
+    <string name="database_label_address_inline">Address: %1$s</string>
+    <string name="database_label_frequency_band">Frequency: %1$s GHz</string>
+    <string name="database_label_type">Type: %1$s</string>
+    <string name="database_cd_network_options">Network options</string>
+    <string name="database_menu_open_map">Open on map</string>
+    <string name="database_menu_network_info">Network info</string>
+    <string name="database_menu_delete_network">Delete network</string>
+    <string name="database_page_indicator">Page %1$d/%2$d</string>
+    <string name="database_networks_displayed">Displayed networks: %1$d</string>
+    <string name="database_network_details">Network details</string>
+    <string name="database_info_frequency">Frequency: %1$s GHz (%2$d MHz)</string>
+    <string name="database_info_security">Security: %1$s</string>
+    <string name="database_info_category">Category: %1$s</string>
+    <string name="database_info_estimated_position">Estimated position:</string>
+    <string name="database_info_lat">Lat: %1$s</string>
+    <string name="database_info_lon">Lon: %1$s</string>
+    <string name="database_info_accuracy">Accuracy: +/- %1$s m</string>
+    <string name="database_info_address">Address: %1$s</string>
+    <string name="database_info_position_processing">Position: still processing or insufficient data.</string>
+    <string name="database_total_scans_history">Total scans (history): %1$d</string>
+
+    <!-- Home screen -->
+    <string name="home_dashboard_title">Scanner dashboard</string>
+    <string name="home_unique_networks">Unique networks</string>
+    <string name="home_distance">Distance</string>
+    <string name="home_wardriving_time">Wardriving time</string>
+    <string name="home_saved_scans">Saved scans</string>
+    <string name="home_best_records">Your best records</string>
+    <string name="home_longest_session">Longest session</string>
+    <string name="home_on_date_format">On: %1$s</string>
+    <string name="home_most_walked_session">Most walked session</string>
+    <string name="home_best_unique_session">Best session by unique networks</string>
+    <string name="home_session_number_format">Session #%1$d</string>
+    <string name="home_new_networks_over_time">New networks over time</string>
+    <string name="home_scans_over_time">Scans over time</string>
+    <string name="home_sessions_over_time">Sessions over time</string>
+    <string name="home_weeks_ago_short">%1$dw ago</string>
+
+    <!-- Time filters -->
+    <string name="time_filter_today">Today</string>
+    <string name="time_filter_last_7_days">Last week</string>
+    <string name="time_filter_last_4_weeks">Monthly (4 weeks)</string>
+    <string name="time_filter_last_6_months">Last 6 months</string>
+    <string name="time_filter_last_year">Last year</string>
+
+    <!-- Summary screen -->
+    <string name="summary_all_sessions">All sessions</string>
+    <string name="summary_session_selected_format">Session #%1$d (%2$s)</string>
+    <string name="summary_screen_title">Session summary</string>
+    <string name="summary_select_session">Select session</string>
+    <string name="summary_session_item_format">Session #%1$d - %2$s</string>
+    <string name="summary_metrics_title">Session metrics</string>
+    <string name="summary_unique_total_subtitle">Total distinct</string>
+    <string name="summary_new_discoveries">New discoveries</string>
+    <string name="summary_never_seen_before">Never seen before</string>
+    <string name="summary_distance_km">Distance (km)</string>
+    <string name="summary_duration">Duration</string>
+    <string name="summary_total_executed">Total executed</string>
+    <string name="summary_discovery_rate_title">Discovery rate</string>
+    <string name="summary_discovery_rate_format">%.1f /min</string>
+    <string name="summary_new_networks_per_minute">New networks/min</string>
+    <string name="summary_spatial_density_title">Spatial density</string>
+    <string name="summary_spatial_density_format">%.0f /km</string>
+    <string name="summary_unique_networks_per_km">Unique networks/km</string>
+    <string name="summary_network_analysis_title">Network analysis</string>
+    <string name="summary_frequencies_title">Frequencies</string>
+    <string name="summary_network_type_title">Network type</string>
+    <string name="summary_frequency_ghz_format">%.1f GHz</string>
+    <string name="category_fast_food">Fast food</string>
+    <string name="category_university">University</string>
+    <string name="category_personal_hotspot">Personal hotspot</string>
+
+    <!-- Charts -->
+    <string name="chart_insufficient_data">Insufficient data</string>
+    <string name="chart_networks_count">%1$d networks</string>
+    <string name="chart_percentage_of_total">%1$d%% of total</string>
+    <string name="chart_insufficient_data_two_points">Insufficient data (at least 2 points)</string>
+    <string name="chart_new_networks_count">%1$d new networks</string>
+
+    <!-- Map -->
+    <string name="map_permission_message">To use the map you must grant location permissions.</string>
+    <string name="map_grant_permissions">Grant permissions</string>
+    <string name="map_gps_disabled_message">GPS is disabled. Turn it on to view the map.</string>
+    <string name="map_open_gps_settings">Open GPS settings</string>
+    <string name="map_search_placeholder">Search city, street...</string>
+    <string name="map_unknown_address">Unknown address</string>
+    <string name="map_center_on_me">Center on me</string>
+
+    <!-- Wifi screen -->
+    <string name="wifi_toast_wardriving_stopped">Continuous wardriving stopped</string>
+    <string name="wifi_toast_location_required">Location must be enabled for wardriving.</string>
+    <string name="wifi_toast_wardriving_started">Continuous wardriving started</string>
+    <string name="wifi_stop_wardriving">Stop continuous wardriving</string>
+    <string name="wifi_start_wardriving">Start continuous wardriving</string>
+    <string name="wifi_throttle_title">Scans blocked (Wi-Fi throttling)</string>
+    <string name="wifi_throttle_message">Android limits scans. Disable in:\nDeveloper options &gt; Wi-Fi scan throttling (OFF).</string>
+    <string name="wifi_missing_permissions_title">Missing permissions</string>
+    <string name="wifi_missing_permissions_message">Tap the button to grant permissions required for scanning.</string>
+    <string name="wifi_grant_permissions">Grant permissions</string>
+    <string name="wifi_no_networks_last_scan">No networks detected in the latest scan.</string>
+    <string name="wifi_hidden_ssid">[Hidden SSID]</string>
+    <string name="wifi_bssid_label">BSSID: %1$s</string>
+    <string name="wifi_protocol_label">Protocol: %1$s</string>
+    <string name="wifi_security_open">Open</string>
+    <string name="wifi_security_unknown">Unknown</string>
+
+    <!-- Settings -->
+    <string name="settings_toast_export_success">File exported successfully!</string>
+    <string name="settings_toast_export_error">Export error: %1$s</string>
+    <string name="settings_toast_import_success">Import completed successfully!</string>
+    <string name="settings_toast_import_error">Import error: %1$s</string>
+    <string name="settings_math_engine_title">Math engine configuration</string>
+    <string name="settings_strategy_weighted_centroid">Weighted Centroid</string>
+    <string name="settings_strategy_trilateration">Trilateration</string>
+    <string name="settings_ransac_filter">Apply RANSAC filtering (discard outliers)</string>
+    <string name="settings_gps_weight">Add GPS accuracy weight</string>
+    <string name="settings_apply_recalculate">Apply and recalculate DB</string>
+    <string name="settings_customization_title">Customization</string>
+    <string name="settings_app_language">App language</string>
+    <string name="language_italian">Italiano</string>
+    <string name="language_english">English</string>
+    <string name="settings_app_theme">App theme</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">System</string>
+    <string name="settings_web_sync_title">Web synchronization</string>
+    <string name="settings_username_label">Username</string>
+    <string name="cd_save_username">Save username</string>
+    <string name="cd_edit_username">Edit username</string>
+    <string name="settings_user_uuid_label">User identifier (UUID):</string>
+    <string name="settings_generating">Generating...</string>
+    <string name="settings_sync_in_progress">Sync in progress...</string>
+    <string name="settings_set_username_sync">Set a username to sync</string>
+    <string name="settings_sync_site">Sync data to website</string>
+    <string name="settings_data_management_title">Data management</string>
+    <string name="settings_export_in_progress">Export in progress...</string>
+    <string name="settings_export_data">Export data</string>
+    <string name="settings_import_in_progress">Import in progress...</string>
+    <string name="settings_import_data">Import data</string>
+    <string name="settings_delete_db">Delete DB</string>
+    <string name="settings_format_choose">Format (choose one):</string>
+    <string name="settings_format_csv_zip">CSV (.zip)</string>
+    <string name="settings_format_json">JSON</string>
+    <string name="settings_entities_to_export">Entities to export:</string>
+    <string name="settings_choose_destination">Choose destination...</string>
+    <string name="settings_file_format_title">File format</string>
+    <string name="settings_select_import_format">Select the file format to import:</string>
+    <string name="settings_format_csv_file_zip">CSV (.zip file)</string>
+    <string name="settings_import_info">Import adds data to existing records. Networks with the same BSSID are not duplicated.</string>
+    <string name="settings_delete_database_title">Delete database</string>
+    <string name="settings_delete_database_confirmation">Are you sure you want to delete all data? This operation cannot be undone.</string>
+    <string name="settings_toast_database_deleted">Database deleted.</string>
+    <string name="settings_delete_all">Delete all</string>
+
+    <!-- Upload / import-export messages -->
+    <string name="upload_error_username_required">Enter a username before uploading</string>
+    <string name="upload_error_no_networks">No network to upload</string>
+    <string name="upload_success_summary">Upload completed: %1$d processed, %2$d errors</string>
+    <string name="upload_error_server_code">Server error: %1$d</string>
+    <string name="upload_error_network">Network error: %1$s</string>
+    <string name="export_error_open_destination">Unable to open destination file</string>
+    <string name="export_error_unknown">Unknown export error</string>
+    <string name="import_error_open_selected_file">Unable to open selected file</string>
+    <string name="import_error_unknown">Unknown import error</string>
+    <string name="import_error_delete">Delete error: %1$s</string>
+
+    <!-- Foreground service -->
+    <string name="service_notification_starting_scan">Starting scan...</string>
+    <string name="service_notification_waiting_wifi_gps">Waiting for Wi-Fi and GPS...</string>
+    <string name="service_notification_waiting_gps">Waiting for GPS...</string>
+    <string name="service_notification_waiting_wifi">Waiting for Wi-Fi...</string>
+    <string name="service_notification_waiting_first_gps_fix">Waiting for first GPS fix...</string>
+    <string name="service_notification_status">Dist: %1$.2f km | Networks: %2$d | Scan #%3$d</string>
+    <string name="service_notification_error">Error during wardriving session</string>
+    <string name="service_notification_channel_name">Wi-Fi scanner background</string>
+    <string name="service_notification_title">Scannerone - WarDriving</string>
 </resources>

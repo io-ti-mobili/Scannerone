@@ -17,16 +17,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.scannerone.R
 import com.example.scannerone.viewmodel.DatabaseViewModel
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Update
 import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
-import java.util.Locale
 import kotlin.math.ceil
 
 @Composable
@@ -49,8 +50,16 @@ fun DatabaseScreen(
     var searchBssid by remember { mutableStateOf("") }
 
     var secDropdownExpanded by remember { mutableStateOf(false) }
-    val secOptions = listOf("Tutte", "WPA3", "WPA2", "WPA", "WEP", "Open")
-    var selectedSecurity by remember { mutableStateOf("Tutte") }
+    val allSecurityValue = "Tutte"
+    val secOptions = listOf(
+        allSecurityValue to stringResource(R.string.database_security_all),
+        "WPA3" to "WPA3",
+        "WPA2" to "WPA2",
+        "WPA" to "WPA",
+        "WEP" to "WEP",
+        "Open" to stringResource(R.string.database_security_open)
+    )
+    var selectedSecurity by remember { mutableStateOf(allSecurityValue) }
 
     val coroutineScope = rememberCoroutineScope()
     var infoDialogNetwork by remember { mutableStateOf<com.example.scannerone.entities.WifiNetwork?>(null) }
@@ -64,29 +73,29 @@ fun DatabaseScreen(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.End) {
                 SmallFloatingActionButton(onClick = { 
                     viewModel.generateYearlyMock()
-                    Toast.makeText(context, "Mock Annuale", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.database_toast_mock_yearly), Toast.LENGTH_SHORT).show()
                 }, containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                    Icon(Icons.Default.History, contentDescription = "Mock Anno")
+                    Icon(Icons.Default.History, contentDescription = stringResource(R.string.database_cd_mock_year))
                 }
                 SmallFloatingActionButton(onClick = { 
                     viewModel.generateMonthlyMock()
-                    Toast.makeText(context, "Mock Mensile", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.database_toast_mock_monthly), Toast.LENGTH_SHORT).show()
                 }, containerColor = MaterialTheme.colorScheme.secondaryContainer) {
-                    Icon(Icons.Default.CalendarMonth, contentDescription = "Mock Mese")
+                    Icon(Icons.Default.CalendarMonth, contentDescription = stringResource(R.string.database_cd_mock_month))
                 }
                 SmallFloatingActionButton(onClick = { 
                     viewModel.generateWeeklyMock()
-                    Toast.makeText(context, "Mock Settimana", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.database_toast_mock_weekly), Toast.LENGTH_SHORT).show()
                 }) {
-                    Icon(Icons.Default.Update, contentDescription = "Mock Settimana")
+                    Icon(Icons.Default.Update, contentDescription = stringResource(R.string.database_cd_mock_week))
                 }
                 ExtendedFloatingActionButton(
                     onClick = { 
                         viewModel.generateMockSession()
-                        Toast.makeText(context, "Mock Ora", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.database_toast_mock_hour), Toast.LENGTH_SHORT).show()
                     },
                     icon = { Icon(Icons.Default.Add, null) },
-                    text = { Text("Mock Ora") }
+                    text = { Text(stringResource(R.string.database_mock_hour)) }
                 )
             }
         }
@@ -119,20 +128,20 @@ fun DatabaseScreen(
                     OutlinedTextField(
                         value = searchAddress,
                         onValueChange = { searchAddress = it },
-                        label = { Text("Ricerca Indirizzo/Paese") },
+                        label = { Text(stringResource(R.string.database_search_address_country)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = searchSsid,
                             onValueChange = { searchSsid = it },
-                            label = { Text("SSID") },
+                            label = { Text(stringResource(R.string.common_ssid)) },
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = searchBssid,
                             onValueChange = { searchBssid = it },
-                            label = { Text("BSSID") },
+                            label = { Text(stringResource(R.string.common_bssid)) },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -143,10 +152,10 @@ fun DatabaseScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         OutlinedTextField(
-                            value = selectedSecurity,
+                            value = secOptions.firstOrNull { it.first == selectedSecurity }?.second ?: selectedSecurity,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Sicurezza") },
+                            label = { Text(stringResource(R.string.common_security)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = secDropdownExpanded) },
                             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                         )
@@ -156,9 +165,9 @@ fun DatabaseScreen(
                         ) {
                             secOptions.forEach { option ->
                                 DropdownMenuItem(
-                                    text = { Text(option) },
+                                    text = { Text(option.second) },
                                     onClick = {
-                                        selectedSecurity = option
+                                        selectedSecurity = option.first
                                         secDropdownExpanded = false
                                     }
                                 )
@@ -174,7 +183,7 @@ fun DatabaseScreen(
                         ) {
                             Icon(imageVector = androidx.compose.material.icons.Icons.Default.Search, contentDescription = null)
                             Spacer(Modifier.width(4.dp))
-                            Text("Cerca")
+                            Text(stringResource(R.string.common_search))
                         }
 
                         OutlinedButton(
@@ -182,12 +191,12 @@ fun DatabaseScreen(
                                 searchAddress = ""
                                 searchSsid = ""
                                 searchBssid = ""
-                                selectedSecurity = secOptions[0]
-                                viewModel.applyFilters("", "", "", "Tutte")
+                                selectedSecurity = allSecurityValue
+                                viewModel.applyFilters("", "", "", allSecurityValue)
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Azzera")
+                            Text(stringResource(R.string.common_reset))
                         }
                     }
                 }
@@ -199,7 +208,7 @@ fun DatabaseScreen(
             if (networks.isEmpty()) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text("Nessuna rete trovata.")
+                        Text(stringResource(R.string.database_no_network_found))
                     }
                 }
             } else {
@@ -217,19 +226,19 @@ fun DatabaseScreen(
                             // 1. COLONNA TESTI
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "SSID: ${net.ssid}",
+                                    text = stringResource(R.string.database_label_ssid, net.ssid),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "MAC: ${net.bssid}",
+                                    text = stringResource(R.string.database_label_mac, net.bssid),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
 
                                 if (net.realCity != null) {
                                     val addressStr = if (net.realStreet != null) "${net.realCity}, ${net.realStreet}" else net.realCity
                                     Text(
-                                        text = "📍 $addressStr",
+                                        text = stringResource(R.string.database_label_address_inline, addressStr ?: ""),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.padding(top = 4.dp)
@@ -240,11 +249,11 @@ fun DatabaseScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Frequenza: ${net.frequencyBand} GHz",
+                                        text = stringResource(R.string.database_label_frequency_band, net.frequencyBand),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     Text(
-                                        text = "Tipo: ${net.security}",
+                                        text = stringResource(R.string.database_label_type, net.security),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -255,7 +264,7 @@ fun DatabaseScreen(
                                 IconButton(onClick = { menuExpanded = true }) {
                                     Icon(
                                         imageVector = androidx.compose.material.icons.Icons.Default.MoreVert,
-                                        contentDescription = "Opzioni Rete"
+                                        contentDescription = stringResource(R.string.database_cd_network_options)
                                     )
                                 }
 
@@ -268,7 +277,7 @@ fun DatabaseScreen(
                                     val currId = net.id
                                     if (currentLat != null && currentLon != null) {
                                         DropdownMenuItem(
-                                            text = { Text("Apri in Mappa") },
+                                            text = { Text(stringResource(R.string.database_menu_open_map)) },
                                             leadingIcon = {
                                                 Icon(
                                                     androidx.compose.material.icons.Icons.Default.LocationOn,
@@ -284,7 +293,7 @@ fun DatabaseScreen(
                                     }
 
                                     DropdownMenuItem(
-                                        text = { Text("Info Rete") },
+                                        text = { Text(stringResource(R.string.database_menu_network_info)) },
                                         leadingIcon = {
                                             Icon(
                                                 androidx.compose.material.icons.Icons.Default.Info,
@@ -302,7 +311,7 @@ fun DatabaseScreen(
                                     )
 
                                     DropdownMenuItem(
-                                        text = { Text("Elimina Rete", color = MaterialTheme.colorScheme.error) },
+                                        text = { Text(stringResource(R.string.database_menu_delete_network), color = MaterialTheme.colorScheme.error) },
                                         leadingIcon = {
                                             Icon(
                                                 androidx.compose.material.icons.Icons.Default.Delete,
@@ -330,7 +339,11 @@ fun DatabaseScreen(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "Pagina ${currentPage + 1}/${ceil(totalFilteredNetworks.toDouble() / dbPageSize).toInt()}",
+                            text = stringResource(
+                                R.string.database_page_indicator,
+                                currentPage + 1,
+                                ceil(totalFilteredNetworks.toDouble() / dbPageSize).toInt()
+                            ),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -359,7 +372,7 @@ fun DatabaseScreen(
                                     contentDescription = null
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Precedente")
+                                Text(stringResource(R.string.common_previous))
                             }
 
                             Button(
@@ -367,7 +380,7 @@ fun DatabaseScreen(
                                 enabled = canGoNextPage,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("Successiva")
+                                Text(stringResource(R.string.common_next))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -382,7 +395,7 @@ fun DatabaseScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ){
                             Text(
-                                text = "Reti visualizzate: $totalFilteredNetworks",
+                                text = stringResource(R.string.database_networks_displayed, totalFilteredNetworks),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -399,39 +412,51 @@ fun DatabaseScreen(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { infoDialogNetwork = null },
             title = {
-                Text(text = "Dettagli Rete", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                Text(text = stringResource(R.string.database_network_details), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("SSID: ${net.ssid}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                    Text("MAC: ${net.bssid}", style = MaterialTheme.typography.bodyMedium)
-                    Text("Frequenza: ${net.frequencyBand} GHz (${net.frequency} MHz)", style = MaterialTheme.typography.bodyMedium)
-                    Text("Sicurezza: ${net.security}", style = MaterialTheme.typography.bodyMedium)
-                    Text("Categoria: ${net.category}", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.database_label_ssid, net.ssid), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.database_label_mac, net.bssid), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.database_info_frequency, net.frequencyBand, net.frequency), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.database_info_security, net.security), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.database_info_category, net.category), style = MaterialTheme.typography.bodyMedium)
                     
                     androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     
                     if (net.realLatitude != null && net.realLongitude != null) {
-                        Text("Posizione Stimata:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        Text("Lat: ${net.realLatitude}", style = MaterialTheme.typography.bodyMedium)
-                        Text("Lon: ${net.realLongitude}", style = MaterialTheme.typography.bodyMedium)
-                        Text("Accuratezza: ±${net.estAccuracy?.toInt() ?: "?"} m", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.database_info_estimated_position), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.database_info_lat, net.realLatitude), style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.database_info_lon, net.realLongitude), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            stringResource(
+                                R.string.database_info_accuracy,
+                                net.estAccuracy?.toInt()?.toString() ?: "?"
+                            ),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                         if (net.realCity != null) {
-                            Text("Indirizzo: ${net.realStreet ?: ""} ${net.realCity}", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                stringResource(
+                                    R.string.database_info_address,
+                                    "${net.realStreet ?: ""} ${net.realCity}".trim()
+                                ),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     } else {
-                        Text("Posizione: Ancora in elaborazione o dati insufficienti.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.database_info_position_processing), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
                     }
 
                     androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                    Text("Statistiche:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                    Text("Scansioni totali (storico): $infoScanCount", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.common_statistics), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.database_total_scans_history, infoScanCount), style = MaterialTheme.typography.bodyMedium)
                 }
             },
             confirmButton = {
                 Button(onClick = { infoDialogNetwork = null }) {
-                    Text("Chiudi")
+                    Text(stringResource(R.string.common_close))
                 }
             }
         )

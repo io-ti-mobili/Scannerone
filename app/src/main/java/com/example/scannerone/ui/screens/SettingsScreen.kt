@@ -5,21 +5,32 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.scannerone.R
 import com.example.scannerone.io.ExportFormat
 import com.example.scannerone.io.ExportSelection
 import com.example.scannerone.io.ExportState
@@ -39,7 +50,9 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     isDark: Boolean,
     themePreference: Boolean?,
+    appLanguage: String,
     onThemeChange: (Boolean?) -> Unit,
+    onLanguageChange: (String) -> Unit,
     viewModel: StrategyViewModel = viewModel(),
     exportImportViewModel: ExportImportViewModel = viewModel(),
     uploadViewModel: UploadViewModel = viewModel()
@@ -101,11 +114,21 @@ fun SettingsScreen(
     LaunchedEffect(exportState) {
         when (val state = exportState) {
             is ExportState.Success -> {
-                Toast.makeText(context, "File esportato con successo!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.settings_toast_export_success),
+                    Toast.LENGTH_SHORT
+                ).show()
                 exportImportViewModel.resetExportState()
             }
             is ExportState.Error -> {
-                Toast.makeText(context, "Errore export: ${state.message}", Toast.LENGTH_LONG).show()
+                val message = state.message?.takeIf { it.isNotBlank() }
+                    ?: context.getString(R.string.common_error_unknown)
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.settings_toast_export_error, message),
+                    Toast.LENGTH_LONG
+                ).show()
                 exportImportViewModel.resetExportState()
             }
             else -> {}
@@ -116,11 +139,21 @@ fun SettingsScreen(
     LaunchedEffect(importState) {
         when (val state = importState) {
             is ImportState.Success -> {
-                Toast.makeText(context, "Import completato con successo!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.settings_toast_import_success),
+                    Toast.LENGTH_SHORT
+                ).show()
                 exportImportViewModel.resetImportState()
             }
             is ImportState.Error -> {
-                Toast.makeText(context, "Errore import: ${state.message}", Toast.LENGTH_LONG).show()
+                val message = state.message?.takeIf { it.isNotBlank() }
+                    ?: context.getString(R.string.common_error_unknown)
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.settings_toast_import_error, message),
+                    Toast.LENGTH_LONG
+                ).show()
                 exportImportViewModel.resetImportState()
             }
             else -> {}
@@ -142,21 +175,20 @@ fun SettingsScreen(
         }
     }
 
-    // ---- Logica Lingua e Tema ----
-    val systemLang = context.resources.configuration.locales[0].language
-    val initialLang = if (systemLang == "it") "Italiano" else "English"
-    val systemInDark = androidx.compose.foundation.isSystemInDarkTheme()
-    
-    var selectedLanguage by remember { mutableStateOf(initialLang) }
+    fun themePreferenceToKey(value: Boolean?): String {
+        return when (value) {
+            true -> "DARK"
+            false -> "LIGHT"
+            null -> "SYSTEM"
+        }
+    }
+
     // Inizializza dal DataStore: null=Sistema, true=Scuro, false=Chiaro
     var selectedTheme by remember {
-        mutableStateOf(
-            when (themePreference) {
-                true  -> "Scuro"
-                false -> "Chiaro"
-                null  -> "Sistema"
-            }
-        )
+        mutableStateOf(themePreferenceToKey(themePreference))
+    }
+    LaunchedEffect(themePreference) {
+        selectedTheme = themePreferenceToKey(themePreference)
     }
 
     Column(
@@ -173,7 +205,7 @@ fun SettingsScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Configurazione Motore Matematico",
+                    stringResource(R.string.settings_math_engine_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -187,7 +219,7 @@ fun SettingsScreen(
                             )
                         }
                     )
-                    Text("Weighted Centroid", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.settings_strategy_weighted_centroid), style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.width(8.dp))
                     RadioButton(
                         selected = draftConfig.baseStrategyType == StrategyType.TRILATERATION,
@@ -197,7 +229,7 @@ fun SettingsScreen(
                             )
                         }
                     )
-                    Text("Trilateration", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.settings_strategy_trilateration), style = MaterialTheme.typography.bodySmall)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -205,7 +237,7 @@ fun SettingsScreen(
                         checked = draftConfig.useRansac,
                         onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useRansac = it)) }
                     )
-                    Text("Applica Filtraggio RANSAC (Scarta Outliers)", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.settings_ransac_filter), style = MaterialTheme.typography.bodySmall)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -213,7 +245,7 @@ fun SettingsScreen(
                         checked = draftConfig.useGpsWeight,
                         onCheckedChange = { viewModel.updateDraftConfig(draftConfig.copy(useGpsWeight = it)) }
                     )
-                    Text("Aggiungi Peso Precisione GPS", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.settings_gps_weight), style = MaterialTheme.typography.bodySmall)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -223,7 +255,7 @@ fun SettingsScreen(
                     enabled = draftConfig != appliedConfig,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Applica e Ricalcola DB")
+                    Text(stringResource(R.string.settings_apply_recalculate))
                 }
             }
         }
@@ -235,7 +267,7 @@ fun SettingsScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Personalizzazione",
+                    stringResource(R.string.settings_customization_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -248,18 +280,18 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Lingua App", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.settings_app_language), style = MaterialTheme.typography.bodyMedium)
                     Row {
                         FilterChip(
-                            selected = selectedLanguage == "Italiano",
-                            onClick = { /* Non fa nulla */ },
-                            label = { Text("Italiano") }
+                            selected = appLanguage == "it",
+                            onClick = { onLanguageChange("it") },
+                            label = { Text(stringResource(R.string.language_italian)) }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         FilterChip(
-                            selected = selectedLanguage == "English",
-                            onClick = { /* Non fa nulla */ },
-                            label = { Text("English") }
+                            selected = appLanguage == "en",
+                            onClick = { onLanguageChange("en") },
+                            label = { Text(stringResource(R.string.language_english)) }
                         )
                     }
                 }
@@ -272,31 +304,31 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Tema App", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.settings_app_theme), style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         FilterChip(
-                            selected = !isDark && selectedTheme != "Sistema",
+                            selected = selectedTheme == "LIGHT",
                             onClick = {
-                                selectedTheme = "Chiaro"
+                                selectedTheme = "LIGHT"
                                 onThemeChange(false)
                             },
-                            label = { Text("Chiaro", fontSize = 10.sp) }
+                            label = { Text(stringResource(R.string.theme_light), fontSize = 10.sp) }
                         )
                         FilterChip(
-                            selected = isDark && selectedTheme != "Sistema",
+                            selected = selectedTheme == "DARK",
                             onClick = {
-                                selectedTheme = "Scuro"
+                                selectedTheme = "DARK"
                                 onThemeChange(true)
                             },
-                            label = { Text("Scuro", fontSize = 10.sp) }
+                            label = { Text(stringResource(R.string.theme_dark), fontSize = 10.sp) }
                         )
                         FilterChip(
-                            selected = selectedTheme == "Sistema",
+                            selected = selectedTheme == "SYSTEM",
                             onClick = {
-                                selectedTheme = "Sistema"
+                                selectedTheme = "SYSTEM"
                                 onThemeChange(null)
                             },
-                            label = { Text("Sistema", fontSize = 10.sp) }
+                            label = { Text(stringResource(R.string.theme_system), fontSize = 10.sp) }
                         )
                     }
                 }
@@ -310,7 +342,7 @@ fun SettingsScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Sincronizzazione Web",
+                    stringResource(R.string.settings_web_sync_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -320,7 +352,7 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = if (isEditingUsername) draftUsername else username,
                     onValueChange = { if (isEditingUsername) draftUsername = it },
-                    label = { Text("Username") },
+                    label = { Text(stringResource(R.string.settings_username_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     readOnly = !isEditingUsername,
@@ -334,12 +366,20 @@ fun SettingsScreen(
                                     },
                                     enabled = draftUsername.isNotBlank()
                                 ) {
-                                    Icon(Icons.Default.Check, contentDescription = "Salva username", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = stringResource(R.string.cd_save_username),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                                 IconButton(
                                     onClick = { isEditingUsername = false }
                                 ) {
-                                    Icon(Icons.Default.Close, contentDescription = "Annulla", tint = MaterialTheme.colorScheme.error)
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = stringResource(R.string.common_cancel),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
                                 }
                             }
                         } else {
@@ -347,7 +387,11 @@ fun SettingsScreen(
                                 draftUsername = username
                                 isEditingUsername = true
                             }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Modifica username", tint = MaterialTheme.colorScheme.primary)
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = stringResource(R.string.cd_edit_username),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
                     }
@@ -356,12 +400,12 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    "Identificativo Utente (UUID):",
+                    stringResource(R.string.settings_user_uuid_label),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary
                 )
                 Text(
-                    text = userUuid.ifEmpty { "Generazione in corso..." },
+                    text = userUuid.ifEmpty { stringResource(R.string.settings_generating) },
                     style = MaterialTheme.typography.bodyMedium,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                 )
@@ -380,11 +424,11 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Sincronizzazione in corso...")
+                        Text(stringResource(R.string.settings_sync_in_progress))
                     } else if (username.isBlank()) {
-                        Text("Imposta un Username per Sincronizzare")
+                        Text(stringResource(R.string.settings_set_username_sync))
                     } else {
-                        Text("Sincronizza Dati sul Sito")
+                        Text(stringResource(R.string.settings_sync_site))
                     }
                 }
             }
@@ -397,7 +441,7 @@ fun SettingsScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Gestione Dati",
+                    stringResource(R.string.settings_data_management_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -416,9 +460,9 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Esportazione in corso...")
+                        Text(stringResource(R.string.settings_export_in_progress))
                     } else {
-                        Text("Esporta Dati")
+                        Text(stringResource(R.string.settings_export_data))
                     }
                 }
 
@@ -439,9 +483,9 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Importazione in corso...")
+                        Text(stringResource(R.string.settings_import_in_progress))
                     } else {
-                        Text("Importa Dati")
+                        Text(stringResource(R.string.settings_import_data))
                     }
                 }
 
@@ -454,7 +498,7 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     enabled = importState !is ImportState.Loading && exportState !is ExportState.Loading
                 ) {
-                    Text("Cancella DB")
+                    Text(stringResource(R.string.settings_delete_db))
                 }
             }
         }
@@ -467,32 +511,32 @@ fun SettingsScreen(
     if (showExportDialog) {
         AlertDialog(
             onDismissRequest = { showExportDialog = false },
-            title = { Text("Esporta Dati") },
+            title = { Text(stringResource(R.string.settings_export_data)) },
             text = {
                 Column {
-                    Text("Formato (scegli uno):", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.settings_format_choose), style = MaterialTheme.typography.titleSmall)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(selected = exportFormat == "CSV", onClick = { exportFormat = "CSV" })
-                        Text("CSV (.zip)")
+                        Text(stringResource(R.string.settings_format_csv_zip))
                         Spacer(modifier = Modifier.width(16.dp))
                         RadioButton(selected = exportFormat == "JSON", onClick = { exportFormat = "JSON" })
-                        Text("JSON")
+                        Text(stringResource(R.string.settings_format_json))
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Entità da esportare:", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.settings_entities_to_export), style = MaterialTheme.typography.titleSmall)
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = exportNetworks, onCheckedChange = { exportNetworks = it })
-                        Text("Reti")
+                        Text(stringResource(R.string.common_networks))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = exportSessions, onCheckedChange = { exportSessions = it })
-                        Text("Sessioni")
+                        Text(stringResource(R.string.common_sessions))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = exportScans, onCheckedChange = { exportScans = it })
-                        Text("Scansioni")
+                        Text(stringResource(R.string.common_scans))
                     }
                 }
             },
@@ -515,11 +559,11 @@ fun SettingsScreen(
                     },
                     enabled = exportNetworks || exportSessions || exportScans
                 ) {
-                    Text("Scegli destinazione…")
+                    Text(stringResource(R.string.settings_choose_destination))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showExportDialog = false }) { Text("Annulla") }
+                TextButton(onClick = { showExportDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -533,21 +577,21 @@ fun SettingsScreen(
                 showImportFormatDialog = false
                 pendingImportUri = null
             },
-            title = { Text("Formato del file") },
+            title = { Text(stringResource(R.string.settings_file_format_title)) },
             text = {
                 Column {
-                    Text("Seleziona il formato del file da importare:", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.settings_select_import_format), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(selected = importFormat == "CSV", onClick = { importFormat = "CSV" })
-                        Text("CSV (file .zip)")
+                        Text(stringResource(R.string.settings_format_csv_file_zip))
                         Spacer(modifier = Modifier.width(16.dp))
                         RadioButton(selected = importFormat == "JSON", onClick = { importFormat = "JSON" })
-                        Text("JSON")
+                        Text(stringResource(R.string.settings_format_json))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "ℹ️ L'import aggiunge i dati a quelli già presenti. Le reti con lo stesso BSSID non vengono duplicate.",
+                        stringResource(R.string.settings_import_info),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -563,7 +607,7 @@ fun SettingsScreen(
                     }
                     pendingImportUri = null
                 }) {
-                    Text("Importa")
+                    Text(stringResource(R.string.settings_import_data))
                 }
             },
             dismissButton = {
@@ -571,7 +615,7 @@ fun SettingsScreen(
                     showImportFormatDialog = false
                     pendingImportUri = null
                 }) {
-                    Text("Annulla")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -583,10 +627,10 @@ fun SettingsScreen(
     if (showDeleteConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
-            title = { Text("Cancella Database") },
+            title = { Text(stringResource(R.string.settings_delete_database_title)) },
             text = {
                 Text(
-                    "Sei sicuro di voler cancellare tutti i dati? Questa operazione è irreversibile.",
+                    stringResource(R.string.settings_delete_database_confirmation),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -595,15 +639,19 @@ fun SettingsScreen(
                     onClick = {
                         showDeleteConfirmDialog = false
                         exportImportViewModel.onDeleteAllClick()
-                        Toast.makeText(context, "Database cancellato.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.settings_toast_database_deleted),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Cancella Tutto")
+                    Text(stringResource(R.string.settings_delete_all))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmDialog = false }) { Text("Annulla") }
+                TextButton(onClick = { showDeleteConfirmDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }

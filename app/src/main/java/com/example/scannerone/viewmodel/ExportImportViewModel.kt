@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.scannerone.R
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.io.ExportBundle
 import com.example.scannerone.io.ExportFormat
@@ -44,6 +45,7 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
      */
     fun onExportClick(formato: ExportFormat, selezione: ExportSelection, uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
+            val app = getApplication<Application>()
             _exportState.value = ExportState.Loading
             try {
                 val bundle = ExportBundle(
@@ -55,11 +57,13 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
                 val contentResolver = getApplication<Application>().contentResolver
                 contentResolver.openOutputStream(uri)?.use { outputStream ->
                     SerializerFactory.get(formato).export(bundle, outputStream)
-                } ?: throw IllegalStateException("Impossibile aprire il file di destinazione")
+                } ?: throw IllegalStateException(app.getString(R.string.export_error_open_destination))
 
                 _exportState.value = ExportState.Success
             } catch (e: Exception) {
-                _exportState.value = ExportState.Error(e.message ?: "Errore sconosciuto durante l'export")
+                _exportState.value = ExportState.Error(
+                    e.message ?: app.getString(R.string.export_error_unknown)
+                )
             }
         }
     }
@@ -71,13 +75,14 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
      */
     fun onImportClick(uri: Uri, formato: ExportFormat) {
         viewModelScope.launch(Dispatchers.IO) {
+            val app = getApplication<Application>()
             _importState.value = ImportState.Loading
             try {
                 val contentResolver = getApplication<Application>().contentResolver
                 val cacheDir = getApplication<Application>().cacheDir
 
                 val input = contentResolver.openInputStream(uri)
-                    ?: throw IllegalStateException("Impossibile aprire il file selezionato")
+                    ?: throw IllegalStateException(app.getString(R.string.import_error_open_selected_file))
 
                 val bundle = SerializerFactory.get(formato).import(input, cacheDir)
 
@@ -87,7 +92,9 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
             } catch (e: Exception) {
                 // Cleanup file temp residui in caso di errore
                 cleanupTempFiles()
-                _importState.value = ImportState.Error(e.message ?: "Errore sconosciuto durante l'import")
+                _importState.value = ImportState.Error(
+                    e.message ?: app.getString(R.string.import_error_unknown)
+                )
             }
         }
     }
@@ -98,12 +105,18 @@ class ExportImportViewModel(application: Application) : AndroidViewModel(applica
      */
     fun onDeleteAllClick() {
         viewModelScope.launch(Dispatchers.IO) {
+            val app = getApplication<Application>()
             try {
                 repo.deleteAllRecords()
                 repo.deleteAllSessions()
                 repo.deleteAllNetworks()
             } catch (e: Exception) {
-                _importState.value = ImportState.Error("Errore nella cancellazione: ${e.message}")
+                _importState.value = ImportState.Error(
+                    app.getString(
+                        R.string.import_error_delete,
+                        e.message ?: app.getString(R.string.common_error_unknown)
+                    )
+                )
             }
         }
     }

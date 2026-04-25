@@ -13,9 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.example.scannerone.R
 import com.example.scannerone.permissions.PermissionGroup
 import com.example.scannerone.permissions.rememberPermissionState
 import com.example.scannerone.services.ScanService.WifiForegroundService
@@ -60,10 +62,10 @@ fun WifiScreen(modifier: Modifier = Modifier) {
         if (isWarDrivingContinuo) {
             val intent = Intent(context, WifiForegroundService::class.java)
             context.stopService(intent)
-            Toast.makeText(context, "WarDriving continuo disattivato", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.wifi_toast_wardriving_stopped), Toast.LENGTH_SHORT).show()
         } else {
             if (!isLocationEnabled(context)) {
-                Toast.makeText(context, "Per il wardriving serve la geolocalizzazione attiva.", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, context.getString(R.string.wifi_toast_location_required), Toast.LENGTH_LONG).show()
                 val intent = Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                 context.startActivity(intent)
                 return
@@ -71,7 +73,7 @@ fun WifiScreen(modifier: Modifier = Modifier) {
             permissionStateForeground.runWithPermission {
                 val intent = Intent(context, WifiForegroundService::class.java)
                 ContextCompat.startForegroundService(context, intent)
-                Toast.makeText(context, "WarDriving continuo attivato", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.wifi_toast_wardriving_started), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -92,8 +94,11 @@ fun WifiScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                (if (isWarDrivingContinuo) "🛑 Ferma WarDriving Continuo"
-                else "🚀 Avvia WarDriving Continuo")
+                if (isWarDrivingContinuo) {
+                    stringResource(R.string.wifi_stop_wardriving)
+                } else {
+                    stringResource(R.string.wifi_start_wardriving)
+                }
             )
         }
 
@@ -105,12 +110,12 @@ fun WifiScreen(modifier: Modifier = Modifier) {
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "Scansioni bloccate (Wi-Fi Throttling)",
+                        text = stringResource(R.string.wifi_throttle_title),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Text(
-                        text = "Android limita le scansioni. Disabilita in:\nOpzioni Sviluppatore > 'Limitazione ricerca reti Wi-Fi' (OFF).",
+                        text = stringResource(R.string.wifi_throttle_message),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -128,16 +133,16 @@ fun WifiScreen(modifier: Modifier = Modifier) {
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "⚠ Permessi mancanti",
+                        text = stringResource(R.string.wifi_missing_permissions_title),
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        text = "Premi il pulsante per concedere i permessi necessari alla scansione.",
+                        text = stringResource(R.string.wifi_missing_permissions_message),
                         style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = { permissionState.requestPermissions() }) {
-                        Text("Concedi permessi")
+                        Text(stringResource(R.string.wifi_grant_permissions))
                     }
                 }
             }
@@ -153,7 +158,7 @@ fun WifiScreen(modifier: Modifier = Modifier) {
                 contentAlignment = Alignment.TopCenter
             ) {
                 Text(
-                    text = "Nessuna rete rilevata nell'ultima scansione.",
+                    text = stringResource(R.string.wifi_no_networks_last_scan),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -177,6 +182,8 @@ fun WifiScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun WifiResultItem(result: ScanResult) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -188,7 +195,7 @@ fun WifiResultItem(result: ScanResult) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = result.SSID.ifEmpty { "[Hidden SSID]" },
+                    text = result.SSID.ifEmpty { stringResource(R.string.wifi_hidden_ssid) },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
@@ -203,13 +210,16 @@ fun WifiResultItem(result: ScanResult) {
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "BSSID: ${result.BSSID}",
+                text = stringResource(R.string.wifi_bssid_label, result.BSSID),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Text(
-                text = "Protocollo: ${simplifyCapabilities(result.capabilities)}",
+                text = stringResource(
+                    R.string.wifi_protocol_label,
+                    simplifyCapabilities(context, result.capabilities)
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
@@ -218,14 +228,16 @@ fun WifiResultItem(result: ScanResult) {
     }
 }
 
-fun simplifyCapabilities(capabilities: String): String {
+fun simplifyCapabilities(context: Context, capabilities: String): String {
     return when {
         capabilities.contains("WPA3", ignoreCase = true) -> "WPA3"
         capabilities.contains("WPA2", ignoreCase = true) -> "WPA2"
         capabilities.contains("WPA", ignoreCase = true) -> "WPA"
         capabilities.contains("WEP", ignoreCase = true) -> "WEP"
-        capabilities.contains("ESS", ignoreCase = true) && !capabilities.contains("WPA") -> "Open"
-        else -> "Unknown"
+        capabilities.contains("ESS", ignoreCase = true) && !capabilities.contains("WPA") -> {
+            context.getString(R.string.wifi_security_open)
+        }
+        else -> context.getString(R.string.wifi_security_unknown)
     }
 }
 

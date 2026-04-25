@@ -3,6 +3,7 @@ package com.example.scannerone.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.scannerone.R
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.repository.SettingsRepository
 import com.example.scannerone.services.uploadApi.UploadClient
@@ -51,15 +52,16 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
 
     fun uploadNetworks() {
         viewModelScope.launch {
+            val app = getApplication<Application>()
             if (_username.value.isBlank()) {
-                _uploadState.value = UploadState.Error("Inserisci uno username prima di caricare")
+                _uploadState.value = UploadState.Error(app.getString(R.string.upload_error_username_required))
                 return@launch
             }
             _uploadState.value = UploadState.Loading
             try {
                 val networks = db.networkDao().getAllNetworksSync()
                 if (networks.isEmpty()) {
-                    _uploadState.value = UploadState.Error("Nessuna rete da caricare")
+                    _uploadState.value = UploadState.Error(app.getString(R.string.upload_error_no_networks))
                     return@launch
                 }
                 val dtoList = networks.map {
@@ -84,13 +86,24 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                 if (response.isSuccessful) {
                     val body = response.body()
                     _uploadState.value = UploadState.Success(
-                        "Upload completato: ${body?.processed ?: 0} processati, ${body?.errors ?: 0} errori"
+                        app.getString(
+                            R.string.upload_success_summary,
+                            body?.processed ?: 0,
+                            body?.errors ?: 0
+                        )
                     )
                 } else {
-                    _uploadState.value = UploadState.Error("Errore dal server: ${response.code()}")
+                    _uploadState.value = UploadState.Error(
+                        app.getString(R.string.upload_error_server_code, response.code())
+                    )
                 }
             } catch (e: Exception) {
-                _uploadState.value = UploadState.Error("Errore di rete: ${e.message}")
+                _uploadState.value = UploadState.Error(
+                    app.getString(
+                        R.string.upload_error_network,
+                        e.message ?: app.getString(R.string.common_error_unknown)
+                    )
+                )
             }
         }
     }

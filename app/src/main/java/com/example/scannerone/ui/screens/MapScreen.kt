@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -101,10 +102,10 @@ fun MapScreen(
         // Permessi mancanti
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                Text("Per usare la mappa devi concedere i permessi di posizione.", textAlign = TextAlign.Center)
+                Text(stringResource(R.string.map_permission_message), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = { permissionState.requestPermissions() }) {
-                    Text("Concedi Permessi")
+                    Text(stringResource(R.string.map_grant_permissions))
                 }
             }
         }
@@ -153,12 +154,12 @@ private fun GpsHardwareGate(
     if (!isGpsEnabled) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                Text("L'antenna GPS è disattivata. Accendila per visualizzare la mappa.", textAlign = TextAlign.Center)
+                Text(stringResource(R.string.map_gps_disabled_message), textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = {
                     context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                 }) {
-                    Text("Apri Impostazioni GPS")
+                    Text(stringResource(R.string.map_open_gps_settings))
                 }
             }
         }
@@ -376,7 +377,7 @@ fun MapContent(
                         // Chiama il ViewModel che gestisce il Debounce e Nominatim
                         viewModel.onSearchQueryChanged(nuovoTesto)
                     },
-                    placeholder = { Text("Cerca città, via...") },
+                    placeholder = { Text(stringResource(R.string.map_search_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -388,7 +389,7 @@ fun MapContent(
                         unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent
                     ),
                     leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "Cerca")
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.common_search))
                     },
                     trailingIcon = {
                         // Mostra la "X" solo se c'è del testo
@@ -398,7 +399,7 @@ fun MapContent(
                                 viewModel.onSearchQueryChanged("") // Svuota la ricerca
                                 focusManager.clearFocus() // Nasconde la tastiera
                             }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Cancella")
+                                Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.common_clear))
                             }
                         }
                     }
@@ -420,7 +421,7 @@ fun MapContent(
                             val displayName = address.extras?.getString("display_name") ?: address.getAddressLine(0)
 
                             Text(
-                                text = displayName ?: "Indirizzo sconosciuto",
+                                text = displayName ?: stringResource(R.string.map_unknown_address),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -457,7 +458,7 @@ fun MapContent(
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
-                contentDescription = "Centra su di me"
+                contentDescription = stringResource(R.string.map_center_on_me)
             )
         }
     }

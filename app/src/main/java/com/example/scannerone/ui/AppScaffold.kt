@@ -38,7 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.scannerone.R
 import com.example.scannerone.ui.screens.MapScreen
 import com.example.scannerone.ui.screens.DatabaseScreen
 import com.example.scannerone.ui.screens.HomeScreen
@@ -54,7 +56,9 @@ import androidx.compose.foundation.layout.size
 fun AppScaffold(
     isDark: Boolean,
     themePreference: Boolean?,
-    onThemeChange: (Boolean?) -> Unit
+    appLanguage: String,
+    onThemeChange: (Boolean?) -> Unit,
+    onLanguageChange: (String) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -81,21 +85,22 @@ fun AppScaffold(
                     modifier = Modifier.width(drawerWidth)
                 ) {
                     Text(
-                        text = "Menu",
+                        text = stringResource(R.string.app_menu_title),
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
                         style = MaterialTheme.typography.titleMedium
                     )
 
                     AppDestination.entries.forEach { destination ->
+                        val destinationLabel = stringResource(destination.labelRes)
                         NavigationDrawerItem(
                             icon = {
                                 Icon(
                                     painterResource(destination.icon),
-                                    contentDescription = destination.label,
+                                    contentDescription = destinationLabel,
                                     modifier = Modifier.size(24.dp)
                                 )
                             },
-                            label = { Text(destination.label) },
+                            label = { Text(destinationLabel) },
                             selected = destination == currentDestination,
                             onClick = {
                                 if (destination == AppDestination.MAP) {
@@ -116,14 +121,14 @@ fun AppScaffold(
                 modifier = Modifier.fillMaxSize(),
                 topBar = {
                     TopAppBar(
-                        title = { Text(currentDestination.label) },
+                        title = { Text(stringResource(currentDestination.labelRes)) },
                         navigationIcon = {
                             IconButton(onClick = {
                                 scope.launch { drawerState.open() }
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.Menu,
-                                    contentDescription = "Apri menu"
+                                    contentDescription = stringResource(R.string.cd_open_menu)
                                 )
                             }
                         },
@@ -159,7 +164,9 @@ fun AppScaffold(
                         modifier = modifier,
                         isDark = isDark,
                         themePreference = themePreference,
-                        onThemeChange = onThemeChange
+                        appLanguage = appLanguage,
+                        onThemeChange = onThemeChange,
+                        onLanguageChange = onLanguageChange
                     )
                 }
             }

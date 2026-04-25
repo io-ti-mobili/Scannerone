@@ -15,10 +15,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.scannerone.R
 import kotlin.math.atan2
 import kotlin.math.sqrt
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -117,9 +120,11 @@ fun PieChart(
         Color(0xFFFB8C00), Color(0xFF8E24AA), Color(0xFF00ACC1), Color(0xFF757575)
     )
 ) {
+    val context = LocalContext.current
+
     if (data.isEmpty()) {
         Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
-            Text("Dati insufficienti")
+            Text(stringResource(R.string.chart_insufficient_data))
         }
         return
     }
@@ -158,8 +163,8 @@ fun PieChart(
                                 clickedTooltip = TooltipData(
                                     pos = offset,
                                     label = entry.key,
-                                    value = "${entry.value.toInt()} reti",
-                                    sub = "$pct% del totale"
+                                    value = context.getString(R.string.chart_networks_count, entry.value.toInt()),
+                                    sub = context.getString(R.string.chart_percentage_of_total, pct)
                                 )
                                 break
                             }
@@ -215,9 +220,11 @@ fun LineChart(
     modifier: Modifier = Modifier,
     lineColor: Color = MaterialTheme.colorScheme.primary
 ) {
+    val context = LocalContext.current
+
     if (data.isEmpty() || data.size < 2) {
         Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
-            Text("Dati insufficienti (almeno 2 punti)")
+            Text(stringResource(R.string.chart_insufficient_data_two_points))
         }
         return
     }
@@ -263,7 +270,7 @@ fun LineChart(
                         clickedTooltip = TooltipData(
                             pos = offset,
                             label = pt.first,
-                            value = "${pt.second} nuove reti"
+                            value = context.getString(R.string.chart_new_networks_count, pt.second)
                         )
                     } else {
                         clickedTooltip = null

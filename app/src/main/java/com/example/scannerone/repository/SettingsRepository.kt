@@ -7,9 +7,11 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.scannerone.utils.LocaleUtils
 import com.example.scannerone.viewmodel.StrategyConfig
 import com.example.scannerone.viewmodel.StrategyType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 // Singleton DataStore legato al Context dell'app
@@ -22,8 +24,17 @@ class SettingsRepository(private val context: Context) {
         private val KEY_USE_RANSAC      = booleanPreferencesKey("use_ransac")
         private val KEY_USE_GPS_WEIGHT  = booleanPreferencesKey("use_gps_weight")
         private val KEY_THEME           = stringPreferencesKey("theme_preference") // "LIGHT" | "DARK" | "SYSTEM"
+        private val KEY_APP_LANGUAGE    = stringPreferencesKey("app_language") // "it" | "en"
         private val KEY_USER_UUID       = stringPreferencesKey("user_uuid")
         private val KEY_USERNAME        = stringPreferencesKey("username")
+    }
+
+    private fun normalizedLanguageOrNull(languageCode: String?): String? {
+        return LocaleUtils.normalizeLanguage(languageCode)
+    }
+
+    private fun resolveSystemLanguage(): String {
+        return LocaleUtils.systemLanguageOrDefault(context)
     }
 
     // ---- StrategyConfig ----
@@ -66,6 +77,36 @@ class SettingsRepository(private val context: Context) {
                 null  -> "SYSTEM"
             }
         }
+    }
+
+    // ---- Lingua App ----
+
+    val appLanguageFlow: Flow<String> = context.settingsDataStore.data.map { prefs ->
+        normalizedLanguageOrNull(prefs[KEY_APP_LANGUAGE]) ?: resolveSystemLanguage()
+    }
+
+    suspend fun ensureLanguageInitialized() {
+        context.settingsDataStore.edit { prefs ->
+            if (normalizedLanguageOrNull(prefs[KEY_APP_LANGUAGE]) == null) {
+                prefs[KEY_APP_LANGUAGE] = resolveSystemLanguage()
+            }
+        }
+    }
+
+    suspend fun saveAppLanguage(languageCode: String) {
+        val safeLanguage = normalizedLanguageOrNull(languageCode) ?: LocaleUtils.DEFAULT_LANGUAGE
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_APP_LANGUAGE] = safeLanguage
+        }
+    }
+
+    suspend fun getStoredLanguageOrNull(): String? {
+        val prefs = context.settingsDataStore.data.first()
+        return normalizedLanguageOrNull(prefs[KEY_APP_LANGUAGE])
+    }
+
+    suspend fun getCurrentLanguage(): String {
+        return appLanguageFlow.first()
     }
 
     // ---- UUID ----

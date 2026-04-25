@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.example.scannerone.R
 import com.example.scannerone.Services.ScanService.WifiScanServiceImpl
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.repository.NetworkRepository
@@ -51,7 +52,7 @@ class WifiForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notifica = creaNotifica("Avvio scansione...")
+        val notifica = creaNotifica(getString(R.string.service_notification_starting_scan))
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notifica, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
@@ -87,9 +88,9 @@ class WifiForegroundService : Service() {
                 val isWifiEnabled = scanService.isWifiEnabled()
                 
                 val errorMsg = when {
-                    !isGpsEnabled && !isWifiEnabled -> "In attesa di Wi-Fi e GPS..."
-                    !isGpsEnabled -> "In attesa del GPS..."
-                    else -> "In attesa del Wi-Fi..."
+                    !isGpsEnabled && !isWifiEnabled -> getString(R.string.service_notification_waiting_wifi_gps)
+                    !isGpsEnabled -> getString(R.string.service_notification_waiting_gps)
+                    else -> getString(R.string.service_notification_waiting_wifi)
                 }
                 aggiornaNotifica(errorMsg)
                 Log.w(TAG, "Attesa attivazione servizi: $errorMsg")
@@ -99,7 +100,7 @@ class WifiForegroundService : Service() {
                 kotlinx.coroutines.delay(2000)
             }
 
-            aggiornaNotifica("In attesa del primo fix GPS...")
+            aggiornaNotifica(getString(R.string.service_notification_waiting_first_gps_fix))
 
             try {
                 warDrivingService.runSession { result ->
@@ -112,8 +113,12 @@ class WifiForegroundService : Service() {
                             "Dist: ${String.format("%.2f", distKm)}km | GPS: ${result.position.getAge()}ms | Totale reti uniche: $totalNetworksSaved")
 
                     aggiornaNotifica(
-                        String.format(java.util.Locale.getDefault(), "Dist: %.2f km | Reti: %d | Scan #%d",
-                            distKm, totalNetworksSaved, totalScansCompleted)
+                        getString(
+                            R.string.service_notification_status,
+                            distKm,
+                            totalNetworksSaved,
+                            totalScansCompleted
+                        )
                     )
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -123,7 +128,7 @@ class WifiForegroundService : Service() {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Errore sessione wardriving: ${e.message}", e)
-                aggiornaNotifica("Errore: ${e.message}")
+                aggiornaNotifica(getString(R.string.service_notification_error))
             }
         }
     }
@@ -143,7 +148,7 @@ class WifiForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Scanner Wi-Fi Background",
+                getString(R.string.service_notification_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(NotificationManager::class.java)
@@ -153,7 +158,7 @@ class WifiForegroundService : Service() {
 
     private fun creaNotifica(testo: String): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Scannerone — WarDriving")
+            .setContentTitle(getString(R.string.service_notification_title))
             .setContentText(testo)
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setOngoing(true)

@@ -15,11 +15,13 @@ import androidx.compose.material.icons.filled.WifiFind
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.scannerone.R
 import com.example.scannerone.viewmodel.HomeViewModel
 import com.example.scannerone.viewmodel.HallOfFameViewModel
 import com.example.scannerone.viewmodel.TimeFilter
@@ -55,21 +57,21 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Dashboard Scanner",
+            text = stringResource(R.string.home_dashboard_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
-                title = "Reti Uniche",
+                title = stringResource(R.string.home_unique_networks),
                 value = "$totalNets",
                 icon = Icons.Default.Wifi,
                 modifier = Modifier.weight(1f)
             )
             DashboardCard(
-                title = "Distanza",
-                value = String.format(Locale.getDefault(), "%.2f km", totalDistance / 1000.0),
+                title = stringResource(R.string.home_distance),
+                value = stringResource(R.string.common_distance_km_format, totalDistance / 1000.0),
                 icon = Icons.Default.Route,
                 modifier = Modifier.weight(1f)
             )
@@ -77,13 +79,13 @@ fun HomeScreen(
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
-                title = "Tempo Wardriving",
+                title = stringResource(R.string.home_wardriving_time),
                 value = formatTime(totalTime),
                 icon = Icons.Default.Timer,
                 modifier = Modifier.weight(1f)
             )
             DashboardCard(
-                title = "Scansioni Salvate",
+                title = stringResource(R.string.home_saved_scans),
                 value = "$totalScans",
                 icon = Icons.Default.Analytics,
                 modifier = Modifier.weight(1f)
@@ -93,7 +95,7 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // --- SEZIONE RECORD (HALL OF FAME) ---
-        Text("I Tuoi Migliori Record", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.home_best_records), style = MaterialTheme.typography.titleMedium)
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val longest = hallOfFame.longestSession
@@ -104,22 +106,22 @@ fun HomeScreen(
             val date1 = longest?.startTime?.let { hallOfFameViewModel.formatTimestamp(it) } ?: ""
 
             DashboardCard(
-                title = "Sessione più lunga",
+                title = stringResource(R.string.home_longest_session),
                 value = durationTxt,
-                subtitle = "In data: $date1",
+                subtitle = stringResource(R.string.home_on_date_format, date1),
                 icon = Icons.Default.Timer,
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
 
             val mostDist = hallOfFame.mostDistanceSession
-            val distTxt = mostDist?.let { String.format(Locale.getDefault(), "%.2f km", it.distanceMetres / 1000.0) } ?: "-"
+            val distTxt = mostDist?.let { stringResource(R.string.common_distance_km_format, it.distanceMetres / 1000.0) } ?: "-"
             val date2 = mostDist?.startTime?.let { hallOfFameViewModel.formatTimestamp(it) } ?: ""
 
             DashboardCard(
-                title = "Sessione camminato di più",
+                title = stringResource(R.string.home_most_walked_session),
                 value = distTxt,
-                subtitle = "In data: $date2",
+                subtitle = stringResource(R.string.home_on_date_format, date2),
                 icon = Icons.Default.DirectionsWalk,
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -131,9 +133,9 @@ fun HomeScreen(
             val date3 = mostUniq?.startTime?.let { hallOfFameViewModel.formatTimestamp(it) } ?: ""
             // Non abbiamo pre-calcolato quante reti uniche ha avuto, mettiamolo descrittivo.
             DashboardCard(
-                title = "Miglior sessione per reti uniche",
-                value = mostUniq?.let { "Sessione #${it.id}" } ?: "-",
-                subtitle = "In data: $date3",
+                title = stringResource(R.string.home_best_unique_session),
+                value = mostUniq?.let { stringResource(R.string.home_session_number_format, it.id) } ?: "-",
+                subtitle = stringResource(R.string.home_on_date_format, date3),
                 icon = Icons.Default.WifiFind,
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -149,7 +151,7 @@ fun HomeScreen(
         
         var expandedMenu1 by remember { mutableStateOf(false) }
         ChartCard(
-            title = "Nuove Reti nel Tempo",
+            title = stringResource(R.string.home_new_networks_over_time),
             action = {
                 Box {
                     OutlinedButton(
@@ -157,7 +159,7 @@ fun HomeScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.defaultMinSize(minHeight = 32.dp)
                     ) {
-                        Text(discoveryTimeFilter.label, fontSize = 12.sp)
+                        Text(stringResource(discoveryTimeFilter.labelRes), fontSize = 12.sp)
                         Spacer(Modifier.width(4.dp))
                         Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
@@ -167,7 +169,7 @@ fun HomeScreen(
                     ) {
                         TimeFilter.entries.forEach { filter ->
                             DropdownMenuItem(
-                                text = { Text(filter.label, fontSize = 12.sp) },
+                                text = { Text(stringResource(filter.labelRes), fontSize = 12.sp) },
                                 onClick = { 
                                     homeViewModel.setDiscoveryTimeFilter(filter)
                                     expandedMenu1 = false 
@@ -185,7 +187,7 @@ fun HomeScreen(
 
         var expandedMenu2 by remember { mutableStateOf(false) }
         ChartCard(
-            title = "Scansioni nel Tempo",
+            title = stringResource(R.string.home_scans_over_time),
             action = {
                 Box {
                     OutlinedButton(
@@ -193,7 +195,7 @@ fun HomeScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.defaultMinSize(minHeight = 32.dp)
                     ) {
-                        Text(scanTimeFilter.label, fontSize = 12.sp)
+                        Text(stringResource(scanTimeFilter.labelRes), fontSize = 12.sp)
                         Spacer(Modifier.width(4.dp))
                         Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
@@ -203,7 +205,7 @@ fun HomeScreen(
                     ) {
                         TimeFilter.entries.forEach { filter ->
                             DropdownMenuItem(
-                                text = { Text(filter.label, fontSize = 12.sp) },
+                                text = { Text(stringResource(filter.labelRes), fontSize = 12.sp) },
                                 onClick = { 
                                     homeViewModel.setScanTimeFilter(filter)
                                     expandedMenu2 = false 
@@ -221,7 +223,7 @@ fun HomeScreen(
 
         var expandedMenu3 by remember { mutableStateOf(false) }
         ChartCard(
-            title = "Sessioni nel Tempo",
+            title = stringResource(R.string.home_sessions_over_time),
             action = {
                 Box {
                     OutlinedButton(
@@ -229,7 +231,7 @@ fun HomeScreen(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.defaultMinSize(minHeight = 32.dp)
                     ) {
-                        Text(sessionsTimeFilter.label, fontSize = 12.sp)
+                        Text(stringResource(sessionsTimeFilter.labelRes), fontSize = 12.sp)
                         Spacer(Modifier.width(4.dp))
                         Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
@@ -239,7 +241,7 @@ fun HomeScreen(
                     ) {
                         TimeFilter.entries.forEach { filter ->
                             DropdownMenuItem(
-                                text = { Text(filter.label, fontSize = 12.sp) },
+                                text = { Text(stringResource(filter.labelRes), fontSize = 12.sp) },
                                 onClick = { 
                                     homeViewModel.setSessionsTimeFilter(filter)
                                     expandedMenu3 = false 

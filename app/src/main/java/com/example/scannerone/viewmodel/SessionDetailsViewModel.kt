@@ -3,6 +3,7 @@ package com.example.scannerone.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.scannerone.R
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.entities.ScanSession
 import com.example.scannerone.repository.AnalyticsRepository
@@ -103,15 +104,16 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
     val categoryStats = _selectedSessionId
         .flatMapLatest { id -> analyticsRepository.getCategoryStatsFlow(id) }
         .map { list ->
+            val app = getApplication<Application>()
             val result = mutableMapOf<String, Float>()
             for (item in list) {
                 if (item.count > 0) {
                     val label = when (item.type) {
                         "ISP" -> "ISP"
-                        "FAST_FOOD" -> "Fast Food"
-                        "UNIVERSITY" -> "Universita"
-                        "HOTSPOT" -> "Hotspot Personali"
-                        else -> "Altro"
+                        "FAST_FOOD" -> app.getString(R.string.category_fast_food)
+                        "UNIVERSITY" -> app.getString(R.string.category_university)
+                        "HOTSPOT" -> app.getString(R.string.category_personal_hotspot)
+                        else -> app.getString(R.string.common_other)
                     }
                     result[label] = (result[label] ?: 0f) + item.count.toFloat()
                 }
@@ -124,10 +126,11 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
     val securityStats = _selectedSessionId
         .flatMapLatest { id -> analyticsRepository.getSecurityStatsFlow(id) }
         .map { list ->
+            val app = getApplication<Application>()
             val result = mutableMapOf<String, Float>()
             for (item in list) {
                 if (item.count > 0) {
-                    val label = item.type ?: "Altro"
+                    val label = item.type ?: app.getString(R.string.common_other)
                     result[label] = (result[label] ?: 0f) + item.count.toFloat()
                 }
             }
@@ -139,10 +142,15 @@ class SessionDetailsViewModel(application: Application) : AndroidViewModel(appli
     val frequencyStats = _selectedSessionId
         .flatMapLatest { id -> analyticsRepository.getFrequencyStatsFlow(id) }
         .map { list ->
+            val app = getApplication<Application>()
             val result = mutableMapOf<String, Float>()
             for (item in list) {
                 if (item.count > 0) {
-                    val label = if (item.type != null && item.type > 0.0f) "${item.type} GHz" else "Altro"
+                    val label = if (item.type != null && item.type > 0.0f) {
+                        app.getString(R.string.summary_frequency_ghz_format, item.type)
+                    } else {
+                        app.getString(R.string.common_other)
+                    }
                     result[label] = (result[label] ?: 0f) + item.count.toFloat()
                 }
             }

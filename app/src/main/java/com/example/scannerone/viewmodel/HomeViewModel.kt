@@ -1,8 +1,10 @@
 package com.example.scannerone.viewmodel
 
 import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.scannerone.R
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.entities.ScanSession
 import com.example.scannerone.repository.AnalyticsRepository
@@ -18,12 +20,12 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-enum class TimeFilter(val label: String) {
-    TODAY("Oggi"),
-    LAST_7_DAYS("Ultima Settimana"),
-    LAST_4_WEEKS("Mensile (4 Sett)"),
-    LAST_6_MONTHS("Ultimi 6 Mesi"),
-    LAST_YEAR("Ultimo Anno")
+enum class TimeFilter(@StringRes val labelRes: Int) {
+    TODAY(R.string.time_filter_today),
+    LAST_7_DAYS(R.string.time_filter_last_7_days),
+    LAST_4_WEEKS(R.string.time_filter_last_4_weeks),
+    LAST_6_MONTHS(R.string.time_filter_last_6_months),
+    LAST_YEAR(R.string.time_filter_last_year)
 }
 
 data class TrendParams(
@@ -155,11 +157,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun formatBucketStats(stats: List<com.example.scannerone.database.BucketStat>, params: TrendParams, filter: TimeFilter): List<Pair<String, Int>> {
+        val app = getApplication<Application>()
         val sdf = SimpleDateFormat(params.formatPattern, Locale.getDefault())
         val result = MutableList(params.numSteps) { i -> 
             val stepStart = params.startTime + (i * params.bucketSize)
             val timeString = if (filter == TimeFilter.LAST_4_WEEKS) {
-                "${params.numSteps - i} sett fa"
+                app.getString(R.string.home_weeks_ago_short, params.numSteps - i)
             } else {
                 sdf.format(Date(stepStart))
             }

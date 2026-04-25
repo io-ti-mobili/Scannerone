@@ -14,9 +14,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.scannerone.R
 import com.example.scannerone.viewmodel.SessionDetailsViewModel
 import com.example.scannerone.ui.components.*
 import java.util.Locale
@@ -42,14 +44,19 @@ fun RiepilogoScreen(
 
     var expanded by remember { mutableStateOf(false) }
 
-    val selectedSessionText = if (selectedId == null) "Tutte le sessioni"
-    else sessions.find { it.id == selectedId }?.let { "Sessione #${it.id} (${viewModel.formatTimestamp(it.startTime)})" } ?: "Tutte le sessioni"
+    val selectedSessionText = if (selectedId == null) {
+        stringResource(R.string.summary_all_sessions)
+    } else {
+        sessions.find { it.id == selectedId }?.let {
+            stringResource(R.string.summary_session_selected_format, it.id, viewModel.formatTimestamp(it.startTime))
+        } ?: stringResource(R.string.summary_all_sessions)
+    }
 
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Riepilogo Sessioni", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.summary_screen_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         // SELETTORE
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
@@ -57,15 +64,15 @@ fun RiepilogoScreen(
                 value = selectedSessionText,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Seleziona Sessione") },
+                label = { Text(stringResource(R.string.summary_select_session)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor()
             )
             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                DropdownMenuItem(text = { Text("Tutte le sessioni") }, onClick = { viewModel.selectSession(null); expanded = false })
+                DropdownMenuItem(text = { Text(stringResource(R.string.summary_all_sessions)) }, onClick = { viewModel.selectSession(null); expanded = false })
                 sessions.forEach { session ->
                     DropdownMenuItem(
-                        text = { Text("Sessione #${session.id} - ${viewModel.formatTimestamp(session.startTime)}") },
+                        text = { Text(stringResource(R.string.summary_session_item_format, session.id, viewModel.formatTimestamp(session.startTime))) },
                         onClick = { viewModel.selectSession(session.id); expanded = false }
                     )
                 }
@@ -73,20 +80,20 @@ fun RiepilogoScreen(
         }
 
         // --- SEZIONE NUMERI IN EVIDENZA ---
-        Text("Metriche della Sessione", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.summary_metrics_title), style = MaterialTheme.typography.titleMedium)
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
-                title = "Reti Uniche",
+                title = stringResource(R.string.home_unique_networks),
                 value = "$sessionUniques",
-                subtitle = "Totali distinte",
+                subtitle = stringResource(R.string.summary_unique_total_subtitle),
                 icon = Icons.Default.Wifi,
                 modifier = Modifier.weight(1f)
             )
             DashboardCard(
-                title = "Nuove Scoperte",
+                title = stringResource(R.string.summary_new_discoveries),
                 value = "$sessionDiscoveries",
-                subtitle = "Mai viste prima",
+                subtitle = stringResource(R.string.summary_never_seen_before),
                 icon = Icons.Default.Speed, // Uso Speed per indicare il "ritmo" di scoperta
                 modifier = Modifier.weight(1f)
             )
@@ -94,13 +101,13 @@ fun RiepilogoScreen(
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
-                title = "Distanza (km)",
+                title = stringResource(R.string.summary_distance_km),
                 value = String.format(Locale.getDefault(), "%.2f", metrics.distanceKm),
                 icon = Icons.Default.Route,
                 modifier = Modifier.weight(1f)
             )
             DashboardCard(
-                title = "Durata",
+                title = stringResource(R.string.summary_duration),
                 value = formatTimeMin(metrics.durationMin.toLong()),
                 icon = Icons.Default.Timer,
                 modifier = Modifier.weight(1f)
@@ -109,16 +116,16 @@ fun RiepilogoScreen(
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
-                title = "Scansioni",
+                title = stringResource(R.string.common_scans),
                 value = "$sessionTotalScans",
-                subtitle = "Totali eseguiti",
+                subtitle = stringResource(R.string.summary_total_executed),
                 icon = Icons.Default.Analytics,
                 modifier = Modifier.weight(1f)
             )
             DashboardCard(
-                title = "Discovery Rate",
-                value = String.format(Locale.getDefault(), "%.1f /min", metrics.discoveryRate),
-                subtitle = "Nuove reti/min",
+                title = stringResource(R.string.summary_discovery_rate_title),
+                value = stringResource(R.string.summary_discovery_rate_format, metrics.discoveryRate),
+                subtitle = stringResource(R.string.summary_new_networks_per_minute),
                 icon = Icons.Default.Speed,
                 modifier = Modifier.weight(1f)
             )
@@ -126,9 +133,9 @@ fun RiepilogoScreen(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DashboardCard(
-                title = "Densità Spaziale",
-                value = String.format(Locale.getDefault(), "%.0f /km", metrics.spatialDensity),
-                subtitle = "Reti uniche/km",
+                title = stringResource(R.string.summary_spatial_density_title),
+                value = stringResource(R.string.summary_spatial_density_format, metrics.spatialDensity),
+                subtitle = stringResource(R.string.summary_unique_networks_per_km),
                 icon = Icons.Default.Map,
                 modifier = Modifier.weight(1f)
             )
@@ -138,21 +145,21 @@ fun RiepilogoScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // --- SEZIONE GRAFICI ---
-        Text("Analisi Reti", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.summary_network_analysis_title), style = MaterialTheme.typography.titleMedium)
         
-        ChartCard(title = "Sicurezza") {
+        ChartCard(title = stringResource(R.string.common_security)) {
             PieChart(data = securityStats, isDonut = false)
         }
         
-        ChartCard(title = "Frequenze") {
+        ChartCard(title = stringResource(R.string.summary_frequencies_title)) {
             PieChart(data = frequencyStats, isDonut = true)
         }
         
-        ChartCard(title = "Tipologia di Rete") {
+        ChartCard(title = stringResource(R.string.summary_network_type_title)) {
             PieChart(data = categoryStats, isDonut = false)
         }
         
-        ChartCard(title = "Nuove Reti nel Tempo") {
+        ChartCard(title = stringResource(R.string.home_new_networks_over_time)) {
             LineChart(data = sessionTrendStats, lineColor = MaterialTheme.colorScheme.primary)
         }
 
