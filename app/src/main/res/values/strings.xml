@@ -53,7 +53,7 @@
     <string name="database_menu_network_info">Network info</string>
     <string name="database_menu_delete_network">Delete network</string>
     <string name="database_page_indicator">Page %1$d/%2$d</string>
-    <string name="database_networks_displayed">Displayed networks: %1$d</string>
+    <string name="database_networks_displayed">Total networks: %1$d</string>
     <string name="database_network_details">Network details</string>
     <string name="database_info_frequency">Frequency: %1$s GHz (%2$d MHz)</string>
     <string name="database_info_security">Security: %1$s</string>
