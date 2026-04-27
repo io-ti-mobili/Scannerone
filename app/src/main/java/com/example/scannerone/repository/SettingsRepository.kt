@@ -27,6 +27,8 @@ class SettingsRepository(private val context: Context) {
         private val KEY_APP_LANGUAGE    = stringPreferencesKey("app_language") // "it" | "en"
         private val KEY_USER_UUID       = stringPreferencesKey("user_uuid")
         private val KEY_USERNAME        = stringPreferencesKey("username")
+        private val KEY_PASSWORD        = stringPreferencesKey("password")
+        private val KEY_SERVER_ENDPOINT = stringPreferencesKey("server_endpoint")
     }
 
     private fun normalizedLanguageOrNull(languageCode: String?): String? {
@@ -134,6 +136,40 @@ class SettingsRepository(private val context: Context) {
     suspend fun saveUsername(username: String) {
         context.settingsDataStore.edit { prefs ->
             prefs[KEY_USERNAME] = username
+        }
+    }
+
+    // ---- Password ----
+
+    val passwordFlow: Flow<String> = context.settingsDataStore.data.map { prefs ->
+        prefs[KEY_PASSWORD] ?: ""
+    }
+
+    suspend fun savePassword(password: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_PASSWORD] = password
+        }
+    }
+
+    // ---- Server Endpoint ----
+
+    val serverEndpointFlow: Flow<String> = context.settingsDataStore.data.map { prefs ->
+        prefs[KEY_SERVER_ENDPOINT] ?: com.example.scannerone.config.AppConfig.BACKEND_URL
+    }
+
+    suspend fun saveServerEndpoint(endpoint: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_SERVER_ENDPOINT] = endpoint
+        }
+    }
+
+    // ---- Save All Credentials ----
+    suspend fun saveCredentials(username: String, uuid: String, password: String, endpoint: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[KEY_USERNAME] = username
+            prefs[KEY_USER_UUID] = uuid
+            prefs[KEY_PASSWORD] = password
+            prefs[KEY_SERVER_ENDPOINT] = endpoint
         }
     }
 }

@@ -172,6 +172,14 @@
     <string name="theme_system">System</string>
     <string name="settings_web_sync_title">Web synchronization</string>
     <string name="settings_username_label">Username</string>
+    <string name="settings_password_label">Password</string>
+    <string name="settings_server_endpoint_label">Server Endpoint</string>
+    <string name="settings_edit_credentials">Edit Credentials</string>
+    <string name="settings_credentials_dialog_title">Web Credentials</string>
+    <string name="common_register">Register</string>
+    <string name="common_save">Save</string>
+    <string name="settings_registration_error">Registration failed</string>
+    <string name="settings_registration_success">Registration successful</string>
     <string name="cd_save_username">Save username</string>
     <string name="cd_edit_username">Edit username</string>
     <string name="settings_user_uuid_label">User identifier (UUID):</string>

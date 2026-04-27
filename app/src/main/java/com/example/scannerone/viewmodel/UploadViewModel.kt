@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.scannerone.R
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.repository.SettingsRepository
+import com.example.scannerone.services.authApi.AuthClient
 import com.example.scannerone.services.uploadApi.UploadClient
 import com.example.scannerone.services.uploadApi.UploadRequestDto
 import com.example.scannerone.services.uploadApi.WifiNetworkUploadDto
@@ -28,14 +29,41 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
     private val _username = MutableStateFlow("")
     val username = _username.asStateFlow()
 
+    private val _password = MutableStateFlow("")
+    val password = _password.asStateFlow()
+
+    private val _serverEndpoint = MutableStateFlow(com.example.scannerone.config.AppConfig.BACKEND_URL)
+    val serverEndpoint = _serverEndpoint.asStateFlow()
+
     private val _uploadState = MutableStateFlow<UploadState>(UploadState.Idle)
     val uploadState = _uploadState.asStateFlow()
+
+    private val _registrationState = MutableStateFlow<RegistrationState>(RegistrationState.Idle)
+    val registrationState = _registrationState.asStateFlow()
 
     init {
         viewModelScope.launch {
             _userUuid.value = settingsRepo.getUserUuid()
-            settingsRepo.usernameFlow.collect {
-                _username.value = it
+            
+            // Launch coroutine per username
+            launch {
+                settingsRepo.usernameFlow.collect {
+                    _username.value = it
+                }
+            }
+            
+            // Launch coroutine per password
+            launch {
+                settingsRepo.passwordFlow.collect {
+                    _password.value = it
+                }
+            }
+
+            // Launch coroutine per endpoint
+            launch {
+                settingsRepo.serverEndpointFlow.collect {
+                    _serverEndpoint.value = it
+                }
             }
         }
     }
@@ -43,6 +71,49 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
     fun saveUsername(newUsername: String) {
         viewModelScope.launch {
             settingsRepo.saveUsername(newUsername)
+        }
+    }
+
+    fun saveCredentials(newUsername: String, newUuid: String, newPassword: String, newEndpoint: String) {
+        viewModelScope.launch {
+            settingsRepo.saveCredentials(newUsername, newUuid, newPassword, newEndpoint)
+            _userUuid.value = newUuid // Update memory immediately
+            _serverEndpoint.value = newEndpoint
+        }
+    }
+
+    fun resetRegistrationState() {
+        _registrationState.value = RegistrationState.Idle
+    }
+
+    fun registerUser(draftEndpoint: String, onSuccess: (String, String) -> Unit) {
+        viewModelScope.launch {
+            _registrationState.value = RegistrationState.Loading
+            try {
+                val api = AuthClient.createApi(draftEndpoint)
+                val response = api.register()
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) {
+                        _registrationState.value = RegistrationState.Success(
+                            getApplication<Application>().getString(R.string.settings_registration_success)
+                        )
+                        onSuccess(body.uuid, body.password)
+                    } else {
+                        _registrationState.value = RegistrationState.Error(
+                            getApplication<Application>().getString(R.string.settings_registration_error)
+                        )
+                    }
+                } else {
+                    _registrationState.value = RegistrationState.Error(
+                        getApplication<Application>().getString(R.string.settings_registration_error) + ": ${response.code()}"
+                    )
+                }
+            } catch (e: Exception) {
+                _registrationState.value = RegistrationState.Error(
+                    getApplication<Application>().getString(R.string.settings_registration_error) + ": ${e.message}"
+                )
+            }
         }
     }
 
@@ -80,9 +151,11 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                 val request = UploadRequestDto(
                     username = _username.value,
                     uuid = _userUuid.value,
+                    password = _password.value,
                     networks = dtoList
                 )
-                val response = UploadClient.api.uploadNetworks(request)
+                val api = UploadClient.createApi(_serverEndpoint.value)
+                val response = api.uploadNetworks(request)
                 if (response.isSuccessful) {
                     val body = response.body()
                     _uploadState.value = UploadState.Success(
@@ -114,4 +187,11 @@ sealed class UploadState {
     object Loading : UploadState()
     data class Success(val message: String) : UploadState()
     data class Error(val message: String) : UploadState()
+}
+
+sealed class RegistrationState {
+    object Idle : RegistrationState()
+    object Loading : RegistrationState()
+    data class Success(val message: String) : RegistrationState()
+    data class Error(val message: String) : RegistrationState()
 }

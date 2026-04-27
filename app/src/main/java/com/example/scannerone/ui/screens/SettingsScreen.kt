@@ -38,6 +38,7 @@ import com.example.scannerone.io.ImportState
 import com.example.scannerone.viewmodel.ExportImportViewModel
 import com.example.scannerone.viewmodel.StrategyViewModel
 import com.example.scannerone.viewmodel.StrategyType
+import com.example.scannerone.viewmodel.RegistrationState
 import com.example.scannerone.viewmodel.UploadState
 import com.example.scannerone.viewmodel.UploadViewModel
 import java.time.LocalDate
@@ -62,16 +63,22 @@ fun SettingsScreen(
 
     val userUuid by uploadViewModel.userUuid.collectAsState()
     val username by uploadViewModel.username.collectAsState()
+    val password by uploadViewModel.password.collectAsState()
+    val serverEndpoint by uploadViewModel.serverEndpoint.collectAsState()
     val uploadState by uploadViewModel.uploadState.collectAsState()
+    val registrationState by uploadViewModel.registrationState.collectAsState()
 
     val exportState by exportImportViewModel.exportState.collectAsState()
     val importState by exportImportViewModel.importState.collectAsState()
 
     val context = LocalContext.current
 
-    // ---- Stato edit username ----
-    var isEditingUsername by remember { mutableStateOf(false) }
+    // ---- Stato edit credentials ----
+    var showCredentialsDialog by remember { mutableStateOf(false) }
     var draftUsername by remember { mutableStateOf("") }
+    var draftUuid by remember { mutableStateOf("") }
+    var draftPassword by remember { mutableStateOf("") }
+    var draftEndpoint by remember { mutableStateOf("") }
 
     // ---- Stato dialoghi ----
     var showExportDialog by remember { mutableStateOf(false) }
@@ -170,6 +177,21 @@ fun SettingsScreen(
             is UploadState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
                 uploadViewModel.resetUploadState()
+            }
+            else -> {}
+        }
+    }
+
+    // ---- Feedback stato registrazione ----
+    LaunchedEffect(registrationState) {
+        when (val state = registrationState) {
+            is RegistrationState.Success -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                uploadViewModel.resetRegistrationState()
+            }
+            is RegistrationState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                uploadViewModel.resetRegistrationState()
             }
             else -> {}
         }
@@ -335,7 +357,7 @@ fun SettingsScreen(
             }
         }
 
-        // ---- Sincronizzazione Web ----
+                // ---- Sincronizzazione Web ----
         Card(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -349,66 +371,18 @@ fun SettingsScreen(
                 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = if (isEditingUsername) draftUsername else username,
-                    onValueChange = { if (isEditingUsername) draftUsername = it },
-                    label = { Text(stringResource(R.string.settings_username_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    readOnly = !isEditingUsername,
-                    trailingIcon = {
-                        if (isEditingUsername) {
-                            Row {
-                                IconButton(
-                                    onClick = {
-                                        uploadViewModel.saveUsername(draftUsername)
-                                        isEditingUsername = false
-                                    },
-                                    enabled = draftUsername.isNotBlank()
-                                ) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = stringResource(R.string.cd_save_username),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                IconButton(
-                                    onClick = { isEditingUsername = false }
-                                ) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = stringResource(R.string.common_cancel),
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
-                        } else {
-                            IconButton(onClick = {
-                                draftUsername = username
-                                isEditingUsername = true
-                            }) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = stringResource(R.string.cd_edit_username),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    stringResource(R.string.settings_user_uuid_label),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-                Text(
-                    text = userUuid.ifEmpty { stringResource(R.string.settings_generating) },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                )
+                Button(
+                    onClick = {
+                        draftUsername = username
+                        draftUuid = userUuid
+                        draftPassword = password
+                        draftEndpoint = serverEndpoint
+                        showCredentialsDialog = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.settings_edit_credentials))
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -617,6 +591,84 @@ fun SettingsScreen(
                 }) {
                     Text(stringResource(R.string.common_cancel))
                 }
+            }
+        )
+    }
+
+    // ============================================================
+    // DIALOG EDIT CREDENTIALS
+    // ============================================================
+    if (showCredentialsDialog) {
+        AlertDialog(
+            onDismissRequest = { showCredentialsDialog = false },
+            title = { Text(stringResource(R.string.settings_credentials_dialog_title)) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = draftEndpoint,
+                        onValueChange = { draftEndpoint = it },
+                        label = { Text(stringResource(R.string.settings_server_endpoint_label)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = draftUsername,
+                        onValueChange = { draftUsername = it },
+                        label = { Text(stringResource(R.string.settings_username_label)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = draftUuid,
+                        onValueChange = { draftUuid = it },
+                        label = { Text(stringResource(R.string.settings_user_uuid_label)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = draftPassword,
+                        onValueChange = { draftPassword = it },
+                        label = { Text(stringResource(R.string.settings_password_label)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(
+                        onClick = {
+                            uploadViewModel.registerUser(draftEndpoint) { newUuid, newPassword ->
+                                draftUuid = newUuid
+                                draftPassword = newPassword
+                            }
+                        },
+                        enabled = registrationState !is RegistrationState.Loading
+                    ) {
+                        if (registrationState is RegistrationState.Loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text(stringResource(R.string.common_register))
+                        }
+                    }
+                    Button(
+                        onClick = {
+                            uploadViewModel.saveCredentials(draftUsername, draftUuid, draftPassword, draftEndpoint)
+                            showCredentialsDialog = false
+                        }
+                    ) {
+                        Text(stringResource(R.string.common_save))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCredentialsDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
