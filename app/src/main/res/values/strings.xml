@@ -176,6 +176,8 @@
     <string name="settings_server_endpoint_label">Server Endpoint</string>
     <string name="settings_edit_credentials">Edit Credentials</string>
     <string name="settings_credentials_dialog_title">Web Credentials</string>
+    <string name="settings_copy_credentials">Copy Credentials</string>
+    <string name="settings_toast_credentials_copied">Credentials copied</string>
     <string name="common_register">Register</string>
     <string name="common_save">Save</string>
     <string name="settings_registration_error">Registration failed</string>

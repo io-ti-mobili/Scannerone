@@ -176,6 +176,8 @@
     <string name="settings_server_endpoint_label">Endpoint Server</string>
     <string name="settings_edit_credentials">Modifica Credenziali</string>
     <string name="settings_credentials_dialog_title">Credenziali Web</string>
+    <string name="settings_copy_credentials">Copia Credenziali</string>
+    <string name="settings_toast_credentials_copied">Credenziali copiate</string>
     <string name="common_register">Registrati</string>
     <string name="common_save">Salva</string>
     <string name="settings_registration_error">Registrazione fallita</string>
