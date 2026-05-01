@@ -20,6 +20,9 @@ interface NetworkDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertNetwork(network: WifiNetwork): Long
 
+    @Query("SELECT * FROM wifi_networks WHERE id = :networkId")
+    suspend fun getNetworkById(networkId: Int): WifiNetwork?
+
     @Query("SELECT id FROM wifi_networks WHERE bssid = :bssid")
     suspend fun getNetworkIdByBssid(bssid: String): Int?
 

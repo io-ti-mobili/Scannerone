@@ -5,7 +5,7 @@ import com.example.scannerone.database.SearchDao
 import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.entities.WifiScanRecord
 import com.example.scannerone.locationCalc.LocationCalcStrategy
-import com.example.scannerone.locationCalc.RansacCalcStrategyWrapper
+import com.example.scannerone.locationCalc.SpatialOutlierRejectionWrapper
 import com.example.scannerone.locationCalc.TrilaterationCalcStrategy
 import com.example.scannerone.locationCalc.WeightedCentroidCalcStrategy
 import com.example.scannerone.services.WarDrivingService.WarDrivingConfig
@@ -55,7 +55,7 @@ class NetworkRepository(private val networkDao: NetworkDao, private val searchDa
         }
 
         if (config.useRansac) {
-            baseStrategy = RansacCalcStrategyWrapper(baseStrategy)
+            baseStrategy = SpatialOutlierRejectionWrapper(baseStrategy)
         }
 
         activeStrategy = baseStrategy
@@ -78,8 +78,10 @@ class NetworkRepository(private val networkDao: NetworkDao, private val searchDa
         val bestScans = searchDao.getBestScansForNetwork(networkId, maxScansForCompute)
 
         if (bestScans.isEmpty()) return
+        
+        val network = networkDao.getNetworkById(networkId) ?: return
 
-        val newPosition = activeStrategy.calculatePosition(bestScans)
+        val newPosition = activeStrategy.calculatePosition(network, bestScans)
 
         if (newPosition != null) {
             networkDao.updateNetworkLocation(

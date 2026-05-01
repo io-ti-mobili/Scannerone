@@ -1,5 +1,6 @@
 package com.example.scannerone.locationCalc
 
+import com.example.scannerone.entities.WifiNetwork
 import com.example.scannerone.entities.WifiScanRecord
 import kotlin.math.abs
 import kotlin.math.cos
@@ -7,17 +8,26 @@ import kotlin.math.pow
 
 class TrilaterationCalcStrategy(
     private val useGpsWeight: Boolean = false,
-    private val txPower: Double = -30.0, // Base power at 1 meter
     private val pathLossExponent: Double = 2.5 // Environment constant (2.5 is typical for mixed indoor/outdoor)
 ) : LocationCalcStrategy {
 
-    override fun calculatePosition(scans: List<WifiScanRecord>): PositionEstimate? {
+    private fun getTxPower(frequency: Int): Double {
+        return when {
+            frequency in 2400..2500 -> -45.0
+            frequency in 5100..5800 -> -52.0
+            frequency > 5800 -> -55.0
+            else -> -50.0 // Default fallback
+        }
+    }
+
+    override fun calculatePosition(network: WifiNetwork, scans: List<WifiScanRecord>): PositionEstimate? {
         // Trilateration requires at least 3 points to intersect circles reliably
         if (scans.size < 3) {
             // Fallback to simpler centroid se non c'è abbastanza tridimensionalità
-            return WeightedCentroidCalcStrategy(useGpsWeight).calculatePosition(scans)
+            return WeightedCentroidCalcStrategy(useGpsWeight).calculatePosition(network, scans)
         }
 
+        val txPower = getTxPower(network.frequency)
         val lat0 = scans[0].scanLatitude
         val lon0 = scans[0].scanLongitude
         val latToMeters = 111320.0
@@ -29,12 +39,14 @@ class TrilaterationCalcStrategy(
             val y = (scan.scanLatitude - lat0) * latToMeters
             val distance = 10.0.pow((txPower - scan.rssi) / (10.0 * pathLossExponent))
             
-            // Calcolo peso GPS separato da agganciare alla matrice dei LeastSquares
+            // Calcolo peso
+            val wRssi = 10.0.pow(scan.rssi / 10.0)
             val wGps = if (useGpsWeight && scan.scanAccuracy > 0f) {
                 1.0 / (scan.scanAccuracy * scan.scanAccuracy)
             } else 1.0
+            val combinedWeight = wRssi * wGps
             
-            Triple(x, y, distance) to wGps
+            Triple(x, y, distance) to combinedWeight
         }
 
         val refPair = points.last()
@@ -70,7 +82,7 @@ class TrilaterationCalcStrategy(
         val det = ata00 * ata11 - ata01 * ata10
         if (abs(det) < 1e-7) {
             // I punti formano una linea retta o sono sovrapposti (impossibile calcolare intersezione)
-            return WeightedCentroidCalcStrategy(useGpsWeight).calculatePosition(scans)
+            return WeightedCentroidCalcStrategy(useGpsWeight).calculatePosition(network, scans)
         }
 
         // Inversione della matrice 2x2 e calcolo finale [X, Y]
@@ -84,7 +96,7 @@ class TrilaterationCalcStrategy(
 
         // Riconversione dai metri XY in Lat/Lon
         val finalLat = lat0 + (yResult / latToMeters)
-        var finalLon = lon0 + (xResult / lonToMeters)
+        val finalLon = lon0 + (xResult / lonToMeters)
 
         // Calcolo della deviazione geometrica (quanto i punti concordavano sull'esatto incrocio)
         var varianceSum = 0.0
