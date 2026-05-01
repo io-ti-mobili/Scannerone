@@ -56,8 +56,29 @@ class WarDrivingServiceImplV2(
 
         try {
             gpsService.startContinuousUpdates { pos ->
+                // Filtro 1: Null Island
+                if (pos.latitude == 0.0 && pos.longitude == 0.0) {
+                    Log.w(TAG, "[GLITCH GPS] Ignorato fix Null Island (0.0, 0.0)")
+                    return@startContinuousUpdates
+                }
+
                 synchronized(lock) {
                     val prev = lastCallbackPos
+
+                    // Filtro 2: Salto temporale / Teletrasporto (Glitch)
+                    if (prev != null) {
+                        val dtMs = pos.timestamp - prev.timestamp
+                        if (dtMs > 0) {
+                            val dist = prev.distanceTo(pos)
+                            val speedMs = dist / (dtMs / 1000.0)
+                            // Soglia: 60 m/s (~216 km/h) e almeno 50m di distanza per evitare falsi positivi su dt piccolissimi
+                            if (speedMs > 60.0 && dist > 50.0) {
+                                Log.w(TAG, "[GLITCH GPS] Salto ignorato: vel=${"%.1f".format(speedMs)}m/s, dist=${"%.1f".format(dist)}m")
+                                return@startContinuousUpdates
+                            }
+                        }
+                    }
+
                     if (prev != null && pos.accuracy < WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M) {
                         val state = MotionStateResolver.resolve(pos, prev)
 
