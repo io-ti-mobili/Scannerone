@@ -40,5 +40,15 @@ enum class PermissionGroup(val permissions: List<String>) {
                 add(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+    ),
+
+    /** Riconoscimento attività fisica (coprocessore motion). Richiesto su Android 10+. */
+    ACTIVITY_RECOGNITION(
+        buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                add(Manifest.permission.ACTIVITY_RECOGNITION)
+            }
+        }
     );
 }
+

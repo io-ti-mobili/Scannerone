@@ -38,7 +38,8 @@ fun WifiScreen(modifier: Modifier = Modifier) {
     val permissionStateForeground = rememberPermissionState(
         PermissionGroup.WIFI,
         PermissionGroup.LOCATION,
-        PermissionGroup.NOTIFICATION
+        PermissionGroup.NOTIFICATION,
+        PermissionGroup.ACTIVITY_RECOGNITION
     )
 
     fun isThrottleEnabled(context: Context): Boolean {

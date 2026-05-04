@@ -9,7 +9,7 @@ import com.example.scannerone.services.GPSService.GPSService
 import com.example.scannerone.services.GPSService.Position
 import com.example.scannerone.services.motion.MotionConfig
 import com.example.scannerone.services.motion.MotionState
-import com.example.scannerone.services.motion.MotionStateResolver
+import com.example.scannerone.services.motion.FusedMotionStateSource
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 
@@ -24,7 +24,8 @@ class WarDrivingServiceImplV2(
     private val scanService: ScanService,
     private val gpsService: GPSService,
     private val scanRepository: NetworkRepository,
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
+    private val fusedMotionSource: FusedMotionStateSource
 ) : WarDrivingService {
 
     companion object {
@@ -80,7 +81,7 @@ class WarDrivingServiceImplV2(
                     }
 
                     if (prev != null && pos.accuracy < WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M) {
-                        val state = MotionStateResolver.resolve(pos, prev)
+                        val state = fusedMotionSource.state.value
 
                         if (state != MotionState.Still) {
                             val dist = prev.distanceTo(pos)
@@ -131,12 +132,15 @@ class WarDrivingServiceImplV2(
             // Prima scansione immediata
             val initialPos: Position = synchronized(lock) { lastCallbackPos!! }
             val initialDist: Double = synchronized(lock) { totalDistM }
-            runCatching { performScan(sessionId, initialPos, initialDist) }
-                .onSuccess { result ->
+            runCatching { performScan(sessionId, initialPos, initialDist, MotionState.Still, 0.0) }
+                .onSuccess { partialResult ->
                     scanCount++; movementScans++
                     lastScanTime = System.currentTimeMillis()
                     recentScanTs.add(lastScanTime)
                     synchronized(lock) { distSinceLastScanM = 0.0 }
+                    
+                    val scansPerMin = recentScanTs.size.toDouble()
+                    val result = partialResult.copy(scansPerMinute = scansPerMin)
                     Log.d(TAG, "Scan #1 [INIZIALE] ${result.networksFound} reti")
                     onResult(result)
                 }
@@ -158,8 +162,8 @@ class WarDrivingServiceImplV2(
 
                 val posToUse: Position = latestPos ?: continue
 
-                // Leggi il profilo dallo stato corrente — zero logica hardcodata qui
-                val state = MotionStateResolver.resolve(posToUse, prevPos)
+                // Leggi lo stato dalla sorgente unica — zero logica hardcodata qui
+                val state = fusedMotionSource.state.value
                 val profile = MotionConfig.profileFor(state)
 
                 val cooldownOk: Boolean = timeSinceScan >= MIN_SCAN_COOLDOWN_MS
@@ -174,14 +178,17 @@ class WarDrivingServiceImplV2(
 
                 Log.d(TAG, "Scan #${scanCount + 1} [$label] | Δt: ${timeSinceScan}ms | Dist: ${"%.1f".format(totalDist)}m")
 
-                runCatching { performScan(sessionId, posToUse, totalDist) }
-                    .onSuccess { result ->
+                runCatching { performScan(sessionId, posToUse, totalDist, state, 0.0) } // We update scansPerMinute on success
+                    .onSuccess { partialResult ->
                         scanCount++; lastScanTime = System.currentTimeMillis()
                         synchronized(lock) { distSinceLastScanM = 0.0 }
                         recentScanTs.add(lastScanTime)
                         val cutoff: Long = lastScanTime - 60_000L
                         recentScanTs.removeAll { ts: Long -> ts < cutoff }
-                        Log.d(TAG, "  ${result.networksSaved}/${result.networksFound} reti | scan/min: ${"%.1f".format(recentScanTs.size.toDouble())} | tot: $scanCount ($movementScans mov, $stationaryScans staz)")
+                        val scansPerMin = recentScanTs.size.toDouble()
+                        
+                        val result = partialResult.copy(scansPerMinute = scansPerMin)
+                        Log.d(TAG, "  ${result.networksSaved}/${result.networksFound} reti | scan/min: ${"%.1f".format(scansPerMin)} | tot: $scanCount ($movementScans mov, $stationaryScans staz)")
                         onResult(result)
                     }
                     .onFailure { Log.e(TAG, "Errore scan: ${it.message}", it) }
@@ -210,7 +217,7 @@ class WarDrivingServiceImplV2(
         }
     }
 
-    private suspend fun performScan(sessionId: Int, position: Position, totalDistanceMetres: Double): WarDrivingScanResult {
+    private suspend fun performScan(sessionId: Int, position: Position, totalDistanceMetres: Double, state: MotionState, scansPerMin: Double): WarDrivingScanResult {
         val t = System.currentTimeMillis()
         val scanResults = scanService.scan()
         Log.d(TAG, "  WiFi: ${scanResults.size} reti in ${System.currentTimeMillis() - t}ms")
@@ -227,6 +234,8 @@ class WarDrivingServiceImplV2(
             sessionRepository.getNetworksFoundInSession(sessionId),
             position,
             totalDistanceMetres,
+            state,
+            scansPerMin,
             scanResults
         )
     }

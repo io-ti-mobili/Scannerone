@@ -227,8 +227,12 @@
     <string name="service_notification_waiting_gps">Waiting for GPS...</string>
     <string name="service_notification_waiting_wifi">Waiting for Wi-Fi...</string>
     <string name="service_notification_waiting_first_gps_fix">Waiting for first GPS fix...</string>
-    <string name="service_notification_status">Dist: %1$.2f km | Networks: %2$d | Scan #%3$d</string>
+    <string name="service_notification_status">[%4$s | %5$.1f/min] %1$.2f km | %2$d nets</string>
     <string name="service_notification_error">Error during wardriving session</string>
     <string name="service_notification_channel_name">Wi-Fi scanner background</string>
     <string name="service_notification_title">Scannerone - WarDriving</string>
+
+    <string name="motion_still">Still</string>
+    <string name="motion_walking">Walking</string>
+    <string name="motion_vehicle">Vehicle</string>
 </resources>

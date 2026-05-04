@@ -16,7 +16,6 @@ import com.example.scannerone.Services.ScanService.WifiScanServiceImpl
 import com.example.scannerone.database.AppDatabase
 import com.example.scannerone.repository.NetworkRepository
 import com.example.scannerone.repository.SessionRepository
-import com.example.scannerone.services.GPSService.LocationManagerGPSServiceImplV4
 import com.example.scannerone.services.WarDrivingService.WarDrivingServiceImplV2
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +23,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
+import com.example.scannerone.services.motion.ActivityRecognitionSource
+import com.example.scannerone.services.motion.FusedMotionStateSource
+import com.example.scannerone.services.motion.MotionState
 
 class WifiForegroundService : Service() {
 
@@ -42,6 +45,10 @@ class WifiForegroundService : Service() {
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
 
+    // ── Sorgenti di movimento ─────────────────────────────────────────────
+    private lateinit var arSource: ActivityRecognitionSource
+    private lateinit var fusedMotionSource: FusedMotionStateSource
+
     private var isScanning = false
     private var totalNetworksSaved = 0
     private var totalScansCompleted = 0
@@ -49,6 +56,12 @@ class WifiForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         creaCanaleNotifica()
+
+        // Inizializza le sorgenti di movimento una volta per il lifecycle del servizio
+        arSource = ActivityRecognitionSource(applicationContext)
+        fusedMotionSource = FusedMotionStateSource(arSource)
+        arSource.start()
+        fusedMotionSource.observeArSource()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -78,8 +91,10 @@ class WifiForegroundService : Service() {
             val scanRepository = NetworkRepository(db.networkDao(), db.searchDao())
             val sessionRepository = SessionRepository(db.sessionDao())
             val scanService = WifiScanServiceImpl(applicationContext)
-            val gpsService = LocationManagerGPSServiceImplV4(applicationContext)
-            val warDrivingService = WarDrivingServiceImplV2(scanService, gpsService, scanRepository, sessionRepository)
+            val gpsService = com.example.scannerone.services.GPSService.FusedLocationGPSServiceImpl(applicationContext, fusedMotionSource)
+            val warDrivingService = WarDrivingServiceImplV2(
+                scanService, gpsService, scanRepository, sessionRepository, fusedMotionSource
+            )
 
 
             // Attendi attivamente che i servizi siano abilitati
@@ -109,6 +124,13 @@ class WifiForegroundService : Service() {
                     _lastScanResults.value = result.scanResults
 
                     val distKm = result.totalDistanceMetres / 1000.0
+                    
+                    val motionStr = when(result.motionState) {
+                        MotionState.Still -> getString(R.string.motion_still)
+                        MotionState.Walking -> getString(R.string.motion_walking)
+                        MotionState.InVehicle -> getString(R.string.motion_vehicle)
+                    }
+
                     Log.d(TAG, "Scan #$totalScansCompleted: ${result.networksSaved}/${result.networksFound} reti | " +
                             "Dist: ${String.format("%.2f", distKm)}km | GPS: ${result.position.getAge()}ms | Totale reti uniche: $totalNetworksSaved")
 
@@ -117,7 +139,9 @@ class WifiForegroundService : Service() {
                             R.string.service_notification_status,
                             distKm,
                             totalNetworksSaved,
-                            totalScansCompleted
+                            totalScansCompleted,
+                            motionStr,
+                            result.scansPerMinute
                         )
                     )
                 }
@@ -137,6 +161,8 @@ class WifiForegroundService : Service() {
         super.onDestroy()
         Log.d(TAG, "Servizio fermato. Totale scansioni: $totalScansCompleted, reti salvate: $totalNetworksSaved")
         serviceJob.cancel()
+        arSource.stop()
+        fusedMotionSource.cancel()
         isScanning = false
         _isRunning.value = false
         _lastScanResults.value = emptyList()

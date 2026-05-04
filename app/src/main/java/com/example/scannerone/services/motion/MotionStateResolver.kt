@@ -3,7 +3,11 @@ package com.example.scannerone.services.motion
 import com.example.scannerone.services.GPSService.Position
 
 /**
- * Logica centralizzata di rilevamento dello stato di movimento.
+ * Rilevamento dello stato di movimento basato sulla velocità GPS.
+ *
+ * **Ruolo**: fallback-only. Viene usato da [FusedMotionStateSource] quando
+ * l'Activity Recognition API non è disponibile (assenza di GMS o permesso negato).
+ * In presenza di AR, questo resolver non viene invocato.
  */
 object MotionStateResolver {
 

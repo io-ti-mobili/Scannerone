@@ -87,4 +87,7 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("com.github.MKergall:osmbonuspack:6.9.0")
     implementation("androidx.compose.material:material-icons-extended")
+
+    // Google Play Services — Activity Recognition API
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 }

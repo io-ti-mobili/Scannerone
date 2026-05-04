@@ -3,6 +3,8 @@ package com.example.scannerone.services.WarDrivingService
 import android.net.wifi.ScanResult
 import com.example.scannerone.services.GPSService.Position
 
+import com.example.scannerone.services.motion.MotionState
+
 /**
  * Risultato di un ciclo di scansione wardriving.
  */
@@ -12,6 +14,8 @@ data class WarDrivingScanResult(
     val uniqueNetworksInSession: Int,
     val position: Position,
     val totalDistanceMetres: Double = 0.0,
+    val motionState: MotionState = MotionState.Still,
+    val scansPerMinute: Double = 0.0,
     val scanResults: List<ScanResult> = emptyList()
 )
 
