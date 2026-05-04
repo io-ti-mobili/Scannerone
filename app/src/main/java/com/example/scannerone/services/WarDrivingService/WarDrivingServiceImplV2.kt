@@ -172,6 +172,11 @@ class WarDrivingServiceImplV2(
 
                 if (!cooldownOk || (!isMoveTrigger && !isTimeTrigger)) continue
 
+                if (posToUse.accuracy > WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M) {
+                    Log.w(TAG, "Scan annullato: GPS pessimo (${posToUse.accuracy}m > ${WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M}m)")
+                    continue
+                }
+
                 val label: String
                 if (isMoveTrigger) { movementScans++; label = "$state (+${"%.1f".format(distSince)}m)" }
                 else { stationaryScans++; label = "STAZIONARIO (${timeSinceScan / 1000}s)" }

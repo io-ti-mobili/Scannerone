@@ -82,8 +82,8 @@ class FusedMotionStateSource(
      * usato solo per confermare (non sovrascrive se AR è attiva).
      */
     fun updateFromGps(current: Position, prev: Position?) {
-        // Se AR è disponibile e ha già inizializzato lo stato, non sovrascrivere
-        if (arSource.isAvailable && arSource.state.value != null) return
+        // Se AR è disponibile, ignora SEMPRE il GPS per il rilevamento del movimento.
+        if (arSource.isAvailable) return
 
         val gpsState = MotionStateResolver.resolve(current, prev)
         propose(gpsState, source = "GPS")
