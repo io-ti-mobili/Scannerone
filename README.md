@@ -36,6 +36,3 @@ Pensata per funzionare al meglio con le versioni più recenti di Android.
 
 L'app non si limita a segnare la tua posizione al momento della scansione, ma calcola attivamente le coordinate stimate in cui si trova il router.
 Il sistema lavora silenziosamente in background e gestisce il tempo tra una scansione e l'altra in modo dinamico: questo aiuta a risparmiare batteria e a ottenere mappe molto più pulite, ignorando in automatico i segnali GPS deboli o imprecisi.
-📄 Licenza
-
-Questo progetto è distribuito sotto licenza MIT. Consulta il file LICENSE per ulteriori dettagli.
