@@ -17,8 +17,10 @@ Pensata per funzionare al meglio con le versioni più recenti di Android.
   </tr>
   <tr>
     <td align="center"><b>Dashboard</b></td>
+    <td align="center"><b>Dashboard 2</b></td>
     <td align="center"><b>Mappa Interattiva</b></td>
     <td align="center"><b>Database Reti</b></td>
+    <td align="center"><b>Database Reti 2</b></td>
   </tr>
   <tr>
     <td><img src="screenshots/Screenshot_Riepilogo_Scannerone.jpg" width="220" alt="Statistiche"/></td>
@@ -30,8 +32,11 @@ Pensata per funzionare al meglio con le versioni più recenti di Android.
   </tr>
   <tr>
     <td align="center"><b>Riepilogo Sessioni</b></td>
+    <td align="center"><b>Riepilogo Sessioni 2</b></td>
     <td align="center"><b>Analisi Frequenze</b></td>
+    <td align="center"><b>Analisi Frequenze 2</b></td>
     <td align="center"><b>Impostazioni</b></td>
+    <td align="center"><b>Impostazioni 2</b></td>
   </tr>
 </table>
 
