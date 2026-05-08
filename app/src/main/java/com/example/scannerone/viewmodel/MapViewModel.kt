@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 import org.osmdroid.bonuspack.location.GeocoderNominatim
 import org.osmdroid.util.GeoPoint
 import java.util.Locale
+import kotlin.math.max
+import kotlin.math.min
 
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
@@ -31,16 +33,46 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private val _visibleNetworks = MutableStateFlow<List<WifiNetwork>>(emptyList())
     val visibleNetworks = _visibleNetworks.asStateFlow()
 
+    private var fetchJob: Job? = null
+    private var lastRequestId: Long = 0
+
+    private val fetchMarginFraction = 0.03
+    private val fetchMarginMinDegrees = 0.0005
+    private val fetchMarginMaxDegrees = 0.01
+
 
     //endpoint: azione chiamata dal frontend quando l'utente muove la mappa, senza caricare subito i dati delle reti
     fun recuperaRetiInZona(north: Double, south: Double, east: Double, west: Double) {
-        viewModelScope.launch {
-            println("valori: nord=$north, sud=$south, est=$east, ovest=$west")
-            // Chiamiamo il Service passando le coordinate
-            val networks = repository.getNetworksInBoundingBox(north, south, east, west)
+        fetchJob?.cancel()
+        val requestId = ++lastRequestId
+        val northNorm = max(north, south)
+        val southNorm = min(north, south)
+        val eastNorm = max(east, west)
+        val westNorm = min(east, west)
 
-            // Aggiorniamo lo stato. Il MapScreen si ridisegnerà da solo!
-            _visibleNetworks.value = networks
+        val latSpan = (northNorm - southNorm).coerceAtLeast(0.0)
+        val lonSpan = (eastNorm - westNorm).coerceAtLeast(0.0)
+
+        val marginLat = (latSpan * fetchMarginFraction)
+            .coerceIn(fetchMarginMinDegrees, fetchMarginMaxDegrees)
+        val marginLon = (lonSpan * fetchMarginFraction)
+            .coerceIn(fetchMarginMinDegrees, fetchMarginMaxDegrees)
+
+        val northExpanded = (northNorm + marginLat).coerceAtMost(90.0)
+        val southExpanded = (southNorm - marginLat).coerceAtLeast(-90.0)
+        val eastExpanded = (eastNorm + marginLon).coerceAtMost(180.0)
+        val westExpanded = (westNorm - marginLon).coerceAtLeast(-180.0)
+
+        fetchJob = viewModelScope.launch {
+            println("valori: nord=$northExpanded, sud=$southExpanded, est=$eastExpanded, ovest=$westExpanded")
+            val networks = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                repository.getNetworksInBoundingBox(northExpanded, southExpanded, eastExpanded, westExpanded)
+            }
+
+            // Evita che una risposta vecchia sovrascriva quella piu recente.
+            if (requestId == lastRequestId) {
+                _visibleNetworks.value = networks
+            }
         }
     }
     // Evento per muovere la telecamera

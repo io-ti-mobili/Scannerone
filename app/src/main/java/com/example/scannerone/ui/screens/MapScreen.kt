@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.location.LocationManager
 import android.provider.Settings
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.compose.foundation.clickable
@@ -78,6 +79,8 @@ import kotlin.random.Random
 import android.graphics.ColorMatrixColorFilter
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import kotlin.math.max
+import kotlin.math.min
 
 @Composable
 fun MapScreen(
@@ -199,8 +202,9 @@ fun MapContent(
             locationOverlay?.disableFollowLocation()
             mapView?.controller?.animateTo(geoPoint)
             mapView?.controller?.setZoom(16.0) // Zoom adeguato per una città/strada
-
-
+            mapView?.post {
+                mapView?.let { requestNetworksForViewport(it, viewModel) }
+            }
         }
     }
 
@@ -241,6 +245,7 @@ fun MapContent(
                         val targetPoint = GeoPoint(targetLat, targetLon)
                         controller.setZoom(18.0)
                         controller.setCenter(targetPoint)
+                        post { requestNetworksForViewport(this, viewModel) }
                         // ...
                     } else {
                         lastLocation?.let {
@@ -254,13 +259,9 @@ fun MapContent(
                             post {
                                 controller.setZoom(18.0)
                                 controller.setCenter(overlay.myLocation)
-                                val limitiMappa = this.boundingBox
-                                viewModel.recuperaRetiInZona(
-                                    limitiMappa.actualNorth,
-                                    limitiMappa.actualSouth,
-                                    limitiMappa.lonEast,
-                                    limitiMappa.lonWest
-                                )
+                                this@apply.postDelayed({
+                                    requestNetworksForViewport(this@apply, viewModel)
+                                }, 300)
                             }
                         }
                     }
@@ -270,26 +271,47 @@ fun MapContent(
 
                     val newClusterer = RadiusMarkerClusterer(ctx)
                     personalizzaIconaCluster(newClusterer)
+                    // Keep clustering active even at high zoom to avoid marker explosion.
+                    newClusterer.setMaxClusteringZoomLevel(25)
+                    newClusterer.setRadius(120)
                     overlays.add(newClusterer)
                     clusterer = newClusterer
 
                     // Aggiorna le reti visibili quando l'utente scorre o zooma (con debounce)
                     val mapListener = DelayedMapListener(object : MapListener {
                         override fun onScroll(event: ScrollEvent?): Boolean {
-                            val limiti = this@apply.boundingBox
-                            viewModel.recuperaRetiInZona(limiti.actualNorth, limiti.actualSouth, limiti.lonEast, limiti.lonWest)
+                            requestNetworksForViewport(this@apply, viewModel)
                             return true
                         }
 
                         override fun onZoom(event: ZoomEvent?): Boolean {
-                            val limiti = this@apply.boundingBox
-                            viewModel.recuperaRetiInZona(limiti.actualNorth, limiti.actualSouth, limiti.lonEast, limiti.lonWest)
+                            requestNetworksForViewport(this@apply, viewModel)
                             return true
                         }
-                    }, 500)
+                    }, )
 
                     this.addMapListener(mapListener)
                     mapView = this
+
+                    addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
+                        override fun onLayoutChange(
+                            v: View,
+                            left: Int,
+                            top: Int,
+                            right: Int,
+                            bottom: Int,
+                            oldLeft: Int,
+                            oldTop: Int,
+                            oldRight: Int,
+                            oldBottom: Int
+                        ) {
+                            if (right - left <= 0 || bottom - top <= 0) return
+                            v.removeOnLayoutChangeListener(this)
+                            v.postDelayed({
+                                requestNetworksForViewport(this@apply, viewModel)
+                            }, 300)
+                        }
+                    })
                 }
             },
             onRelease = { view ->
@@ -306,13 +328,15 @@ fun MapContent(
 
                     var targetMarker: Marker? = null
                     val sharedInfoWindow = BoldInfoWindow(view, isDark)
-
+                    println("reti in mappa= "+visibleNetworks.size)
                     for (rete in visibleNetworks) {
                         val lat = rete.realLatitude ?: 0.0
                         val lon = rete.realLongitude ?: 0.0
                         if (lat != 0.0 && lon != 0.0) {
-                            val offsetLat = (Random.nextDouble() - 0.5) * 0.0001
-                            val offsetLon = (Random.nextDouble() - 0.5) * 0.0001
+                            val seed = rete.id?.toLong() ?: (rete.bssid?.hashCode()?.toLong() ?: 0L)
+                            val deterministicRandom = Random(seed)
+                            val offsetLat = (deterministicRandom.nextDouble() - 0.5) * 0.0001
+                            val offsetLon = (deterministicRandom.nextDouble() - 0.5) * 0.0001
 
                             val displayLat = lat + offsetLat
                             val displayLon = lon + offsetLon
@@ -349,6 +373,7 @@ fun MapContent(
                         }
                     }
 
+                    cls.invalidate()
                     view.invalidate()
 
                     if (targetMarker != null && shouldShowTarget) {
@@ -450,6 +475,9 @@ fun MapContent(
                     overlay.enableFollowLocation()
                     mapView?.controller?.animateTo(currentPos)
                     mapView?.controller?.setZoom(18.0)
+                    mapView?.post {
+                        mapView?.let { requestNetworksForViewport(it, viewModel) }
+                    }
                 }
             },
             modifier = Modifier
@@ -462,6 +490,23 @@ fun MapContent(
             )
         }
     }
+}
+
+
+private fun requestNetworksForViewport(view: MapView, viewModel: MapViewModel) {
+    if (view.width == 0 || view.height == 0) return
+    val limiti = view.boundingBox
+    val north = max(limiti.actualNorth, limiti.actualSouth)
+    val south = min(limiti.actualNorth, limiti.actualSouth)
+    val east = max(limiti.lonEast, limiti.lonWest)
+    val west = min(limiti.lonEast, limiti.lonWest)
+    if (north == south || east == west) return
+    viewModel.recuperaRetiInZona(
+        north,
+        south,
+        east,
+        west
+    )
 }
 
 
