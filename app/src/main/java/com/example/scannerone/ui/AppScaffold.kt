@@ -82,7 +82,8 @@ fun AppScaffold(
             gesturesEnabled = false,
             drawerContent = {
                 ModalDrawerSheet(
-                    modifier = Modifier.width(drawerWidth)
+                    modifier = Modifier.width(drawerWidth),
+                    drawerContainerColor = MaterialTheme.colorScheme.surface
                 ) {
                     Text(
                         text = stringResource(R.string.app_menu_title),
@@ -111,7 +112,15 @@ fun AppScaffold(
                                 currentDestination = destination
                                 scope.launch { drawerState.close() }
                             },
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                unselectedContainerColor = Color.Transparent,
+                                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
                 }
