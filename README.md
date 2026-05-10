@@ -62,3 +62,14 @@ Pensata per funzionare al meglio con le versioni più recenti di Android.
 1. Clona il progetto:
    ```bash
    git clone https://github.com/io-ti-mobili/Scannerone.git
+
+2.  Apri il progetto in Android Studio.
+
+3.    Al primo avvio, assicurati di concedere i permessi necessari per la posizione e la scansione Wi-Fi.
+
+.
+
+## 📊 Come Funziona la Localizzazione
+
+L'app non si limita a segnare la tua posizione al momento della scansione, ma calcola attivamente le coordinate stimate in cui si trova il router.
+Il sistema lavora silenziosamente in background e gestisce il tempo tra una scansione e l'altra in modo dinamico: questo aiuta a risparmiare batteria e a ottenere mappe molto più pulite, ignorando in automatico i segnali GPS deboli o imprecisi.
