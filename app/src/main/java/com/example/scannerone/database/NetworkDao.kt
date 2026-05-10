@@ -39,6 +39,9 @@ interface NetworkDao {
     @Query("SELECT id FROM wifi_networks")
     suspend fun getAllNetworkIds(): List<Int>
 
+    @Query("SELECT id FROM wifi_networks WHERE realCountry IS NULL")
+    suspend fun getNetworkIdsWithoutCountry(): List<Int>
+
     @Query("SELECT COUNT(*) FROM wifi_scan_records WHERE networkId = :networkId")
     suspend fun getScanCountForNetwork(networkId: Int): Int
 

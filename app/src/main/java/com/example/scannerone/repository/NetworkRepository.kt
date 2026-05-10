@@ -46,6 +46,13 @@ class NetworkRepository(private val networkDao: NetworkDao, private val searchDa
                 recalculateNetwork(networkId)
             }
         }
+
+        repositoryScope.launch {
+            val pendingIds = networkDao.getNetworkIdsWithoutCountry()
+            for (id in pendingIds) {
+                calculationChannel.trySend(id)
+            }
+        }
     }
 
     private fun updateActiveStrategy() {
@@ -159,7 +166,7 @@ class NetworkRepository(private val networkDao: NetworkDao, private val searchDa
 
         val count = networkDao.getScanCountForNetwork(internalId)
 
-        if (count <= scansThresholdForCompute || count % scansThresholdForCompute == 0) {
+        if (count == 1 || count % scansThresholdForCompute == 0) {
             calculationChannel.trySend(internalId)
         }
     }

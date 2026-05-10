@@ -52,6 +52,8 @@ class WifiForegroundService : Service() {
     private var isScanning = false
     private var totalNetworksSaved = 0
     private var totalScansCompleted = 0
+    private var lastDistKm = 0.0
+    private var lastScansPerMinute = 0.0
 
     override fun onCreate() {
         super.onCreate()
@@ -76,10 +78,31 @@ class WifiForegroundService : Service() {
         _isRunning.value = true
         totalNetworksSaved = 0
         totalScansCompleted = 0
+        lastDistKm = 0.0
+        lastScansPerMinute = 0.0
 
         iniziaScansioneInBackground()
 
         return START_STICKY
+    }
+
+    private fun updateNotificationWithCurrentState() {
+        val state = fusedMotionSource.state.value
+        val motionStr = when(state) {
+            MotionState.Still -> getString(R.string.motion_still)
+            MotionState.Walking -> getString(R.string.motion_walking)
+            MotionState.InVehicle -> getString(R.string.motion_vehicle)
+        }
+        aggiornaNotifica(
+            getString(
+                R.string.service_notification_status,
+                lastDistKm,
+                totalNetworksSaved,
+                totalScansCompleted,
+                motionStr,
+                lastScansPerMinute
+            )
+        )
     }
 
     private fun iniziaScansioneInBackground() {
@@ -117,14 +140,24 @@ class WifiForegroundService : Service() {
 
             aggiornaNotifica(getString(R.string.service_notification_waiting_first_gps_fix))
 
+            // Ascolta in background i cambi di stato per aggiornare la notifica reattivamente
+            serviceScope.launch {
+                fusedMotionSource.state.collect {
+                    if (isScanning && totalScansCompleted > 0) {
+                        updateNotificationWithCurrentState()
+                    }
+                }
+            }
+
             try {
                 warDrivingService.runSession { result ->
                     totalScansCompleted++
                     totalNetworksSaved = result.uniqueNetworksInSession
                     _lastScanResults.value = result.scanResults
 
-                    val distKm = result.totalDistanceMetres / 1000.0
-                    
+                    lastDistKm = result.totalDistanceMetres / 1000.0
+                    lastScansPerMinute = result.scansPerMinute
+
                     val motionStr = when(result.motionState) {
                         MotionState.Still -> getString(R.string.motion_still)
                         MotionState.Walking -> getString(R.string.motion_walking)
@@ -132,18 +165,9 @@ class WifiForegroundService : Service() {
                     }
 
                     Log.d(TAG, "Scan #$totalScansCompleted: ${result.networksSaved}/${result.networksFound} reti | " +
-                            "Dist: ${String.format("%.2f", distKm)}km | GPS: ${result.position.getAge()}ms | Totale reti uniche: $totalNetworksSaved")
+                            "Dist: ${String.format("%.2f", lastDistKm)}km | GPS: ${result.position.getAge()}ms | Totale reti uniche: $totalNetworksSaved")
 
-                    aggiornaNotifica(
-                        getString(
-                            R.string.service_notification_status,
-                            distKm,
-                            totalNetworksSaved,
-                            totalScansCompleted,
-                            motionStr,
-                            result.scansPerMinute
-                        )
-                    )
+                    updateNotificationWithCurrentState()
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // Job.cancel() lancia questa eccezione per interrompere in modo sicuro la coroutine.

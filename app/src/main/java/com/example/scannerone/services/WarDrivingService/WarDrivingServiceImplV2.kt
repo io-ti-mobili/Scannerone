@@ -10,6 +10,7 @@ import com.example.scannerone.services.GPSService.Position
 import com.example.scannerone.services.motion.MotionConfig
 import com.example.scannerone.services.motion.MotionState
 import com.example.scannerone.services.motion.FusedMotionStateSource
+import com.example.scannerone.services.agent.ScanDirectorAgent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 
@@ -54,6 +55,8 @@ class WarDrivingServiceImplV2(
         var stationaryScans = 0
         var lastScanTime = 0L
         val recentScanTs = ArrayList<Long>(64)
+
+        val scanAgent = ScanDirectorAgent()
 
         try {
             gpsService.startContinuousUpdates { pos ->
@@ -141,6 +144,8 @@ class WarDrivingServiceImplV2(
                     
                     val scansPerMin = recentScanTs.size.toDouble()
                     val result = partialResult.copy(scansPerMinute = scansPerMin)
+                    scanAgent.updateBeliefs(result)
+                    
                     Log.d(TAG, "Scan #1 [INIZIALE] ${result.networksFound} reti")
                     onResult(result)
                 }
@@ -164,13 +169,14 @@ class WarDrivingServiceImplV2(
 
                 // Leggi lo stato dalla sorgente unica — zero logica hardcodata qui
                 val state = fusedMotionSource.state.value
-                val profile = MotionConfig.profileFor(state)
+
+                // L'agente ci dice quanto tempo aspettare dinamicamente
+                val dynamicScanIntervalMs = scanAgent.askNextScanInterval(state)
 
                 val cooldownOk: Boolean = timeSinceScan >= MIN_SCAN_COOLDOWN_MS
-                val isMoveTrigger: Boolean = distSince >= profile.scanTriggerDistanceM
-                val isTimeTrigger: Boolean = timeSinceScan >= profile.stationaryScanIntervalMs
+                val isTimeTrigger: Boolean = timeSinceScan >= dynamicScanIntervalMs
 
-                if (!cooldownOk || (!isMoveTrigger && !isTimeTrigger)) continue
+                if (!cooldownOk || !isTimeTrigger) continue
 
                 if (posToUse.accuracy > WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M) {
                     Log.w(TAG, "Scan annullato: GPS pessimo (${posToUse.accuracy}m > ${WarDrivingConfig.MIN_ACCEPTABLE_ACCURACY_M}m)")
@@ -178,7 +184,7 @@ class WarDrivingServiceImplV2(
                 }
 
                 val label: String
-                if (isMoveTrigger) { movementScans++; label = "$state (+${"%.1f".format(distSince)}m)" }
+                if (state != MotionState.Still) { movementScans++; label = "$state" }
                 else { stationaryScans++; label = "STAZIONARIO (${timeSinceScan / 1000}s)" }
 
                 Log.d(TAG, "Scan #${scanCount + 1} [$label] | Δt: ${timeSinceScan}ms | Dist: ${"%.1f".format(totalDist)}m")
@@ -193,6 +199,10 @@ class WarDrivingServiceImplV2(
                         val scansPerMin = recentScanTs.size.toDouble()
                         
                         val result = partialResult.copy(scansPerMinute = scansPerMin)
+                        
+                        // L'agente percepisce il mondo aggiornando le sue credenze
+                        scanAgent.updateBeliefs(result)
+                        
                         Log.d(TAG, "  ${result.networksSaved}/${result.networksFound} reti | scan/min: ${"%.1f".format(scansPerMin)} | tot: $scanCount ($movementScans mov, $stationaryScans staz)")
                         onResult(result)
                     }

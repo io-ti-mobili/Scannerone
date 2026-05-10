@@ -5,7 +5,6 @@ package com.example.scannerone.services.motion
  */
 data class MotionProfile(
     val gpsRateMs: Long,
-    val scanTriggerDistanceM: Double,
-    val stationaryScanIntervalMs: Long,
+    val scanIntervalMs: Long,
     val stillTimeoutMs: Long
 )

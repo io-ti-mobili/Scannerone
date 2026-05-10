@@ -42,22 +42,19 @@ object MotionConfig {
 
     val PROFILE_STILL = MotionProfile(
         gpsRateMs                = 3_000L,
-        scanTriggerDistanceM     = Double.MAX_VALUE,
-        stationaryScanIntervalMs = 30_000L,
+        scanIntervalMs           = 60_000L,
         stillTimeoutMs           = 0L
     )
 
     val PROFILE_WALKING = MotionProfile(
         gpsRateMs                = 500L,
-        scanTriggerDistanceM     = 10.0,
-        stationaryScanIntervalMs = 30_000L,
+        scanIntervalMs           = 30_000L,
         stillTimeoutMs           = 15_000L
     )
 
     val PROFILE_IN_VEHICLE = MotionProfile(
         gpsRateMs                = 500L,
-        scanTriggerDistanceM     = 10.0,
-        stationaryScanIntervalMs = 30_000L,
+        scanIntervalMs           = 10_000L,
         stillTimeoutMs           = 15_000L
     )
 
