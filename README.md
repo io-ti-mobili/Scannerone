@@ -61,4 +61,4 @@ Pensata per funzionare al meglio con le versioni più recenti di Android.
 
 1. Clona il progetto:
    ```bash
-   git clone [https://github.com/io-ti-mobili/Scannerone.git](https://github.com/io-ti-mobili/Scannerone.git)
+   git clone https://github.com/io-ti-mobili/Scannerone.git
