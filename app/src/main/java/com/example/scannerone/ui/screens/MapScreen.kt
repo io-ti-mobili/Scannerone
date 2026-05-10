@@ -46,10 +46,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -194,6 +197,7 @@ fun MapContent(
     val suggestions by viewModel.searchSuggestions.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
+    val uriHandler = LocalUriHandler.current
 
     // Quando il ViewModel emette un GeoPoint, la mappa si anima in quella posizione
     LaunchedEffect(Unit) {
@@ -489,6 +493,24 @@ fun MapContent(
                 contentDescription = stringResource(R.string.map_center_on_me)
             )
         }
+
+        // Attribuzione OpenStreetMap (Obbligatoria per licenza ODbL)
+        Text(
+            text = "© OpenStreetMap contributors",
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 8.dp, bottom = 8.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
+                )
+                .padding(horizontal = 4.dp, vertical = 2.dp)
+                .clickable {
+                    uriHandler.openUri("https://www.openstreetmap.org/copyright")
+                }
+        )
     }
 }
 
