@@ -193,6 +193,7 @@
     <string name="settings_export_in_progress">Export in progress...</string>
     <string name="settings_export_data">Export data</string>
     <string name="settings_import_in_progress">Import in progress...</string>
+    <string name="settings_toast_delete_blocked_scan">Cannot delete database during an active scan.</string>
     <string name="settings_import_data">Import data</string>
     <string name="settings_delete_db">Delete DB</string>
     <string name="settings_format_choose">Format (choose one):</string>
@@ -212,7 +213,7 @@
     <!-- Upload / import-export messages -->
     <string name="upload_error_username_required">Enter a username before uploading</string>
     <string name="upload_error_no_networks">No network to upload</string>
-    <string name="upload_success_summary">Upload completed: %1$d processed, %2$d errors</string>
+    <string name="upload_success_summary">Upload completed successfully.</string>
     <string name="upload_error_server_code">Server error: %1$d</string>
     <string name="upload_error_network">Network error: %1$s</string>
     <string name="export_error_open_destination">Unable to open destination file</string>

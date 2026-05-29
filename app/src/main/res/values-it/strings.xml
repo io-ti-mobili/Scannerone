@@ -193,6 +193,7 @@
     <string name="settings_export_in_progress">Esportazione in corso...</string>
     <string name="settings_export_data">Esporta dati</string>
     <string name="settings_import_in_progress">Importazione in corso...</string>
+    <string name="settings_toast_delete_blocked_scan">Impossibile cancellare il database durante una scansione attiva.</string>
     <string name="settings_import_data">Importa dati</string>
     <string name="settings_delete_db">Cancella DB</string>
     <string name="settings_format_choose">Formato (scegli uno):</string>
@@ -212,7 +213,7 @@
     <!-- Upload / import-export messages -->
     <string name="upload_error_username_required">Inserisci uno username prima di caricare</string>
     <string name="upload_error_no_networks">Nessuna rete da caricare</string>
-    <string name="upload_success_summary">Upload completato: %1$d processati, %2$d errori</string>
+    <string name="upload_success_summary">Inviati con successo.</string>
     <string name="upload_error_server_code">Errore dal server: %1$d</string>
     <string name="upload_error_network">Errore di rete: %1$s</string>
     <string name="export_error_open_destination">Impossibile aprire il file di destinazione</string>

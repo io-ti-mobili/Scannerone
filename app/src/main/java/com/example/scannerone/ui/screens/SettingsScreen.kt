@@ -45,6 +45,7 @@ import com.example.scannerone.viewmodel.StrategyType
 import com.example.scannerone.viewmodel.RegistrationState
 import com.example.scannerone.viewmodel.UploadState
 import com.example.scannerone.viewmodel.UploadViewModel
+import com.example.scannerone.services.ScanService.WifiForegroundService
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -74,6 +75,7 @@ fun SettingsScreen(
 
     val exportState by exportImportViewModel.exportState.collectAsState()
     val importState by exportImportViewModel.importState.collectAsState()
+    val isScanning by WifiForegroundService.isRunning.collectAsState()
 
     val context = LocalContext.current
 
@@ -471,7 +473,13 @@ fun SettingsScreen(
 
                 // ---- Bottone Cancella DB ----
                 Button(
-                    onClick = { showDeleteConfirmDialog = true },
+                    onClick = { 
+                        if (isScanning) {
+                            Toast.makeText(context, context.getString(R.string.settings_toast_delete_blocked_scan), Toast.LENGTH_SHORT).show()
+                        } else {
+                            showDeleteConfirmDialog = true 
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     enabled = importState !is ImportState.Loading && exportState !is ExportState.Loading

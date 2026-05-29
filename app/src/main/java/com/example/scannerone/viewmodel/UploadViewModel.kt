@@ -159,11 +159,7 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                 if (response.isSuccessful) {
                     val body = response.body()
                     _uploadState.value = UploadState.Success(
-                        app.getString(
-                            R.string.upload_success_summary,
-                            body?.processed ?: 0,
-                            body?.errors ?: 0
-                        )
+                        app.getString(R.string.upload_success_summary)
                     )
                 } else {
                     _uploadState.value = UploadState.Error(

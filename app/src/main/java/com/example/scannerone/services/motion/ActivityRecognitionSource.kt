@@ -1,6 +1,7 @@
 package com.example.scannerone.services.motion
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -92,6 +93,7 @@ class ActivityRecognitionSource(private val context: Context) {
      * Registra le transizioni con l'AR API.
      * No-op se GMS non è disponibile o il permesso è negato.
      */
+    @SuppressLint("MissingPermission")
     fun start() {
         if (!isAvailable) {
             Log.w(TAG, "AR non disponibile (GMS=${hasGms()}, perm=${hasPermission()}) — fallback GPS attivo")
@@ -125,6 +127,7 @@ class ActivityRecognitionSource(private val context: Context) {
     }
 
     /** Deregistra le transizioni e rilascia le risorse. */
+    @SuppressLint("MissingPermission")
     fun stop() {
         if (!isRegistered) return
         pendingIntent?.let { pi ->
