@@ -362,7 +362,7 @@ fun DatabaseScreen(
                                 .padding(top = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OutlinedButton(
+                            Button(
                                 onClick = { viewModel.goToPreviousPage() },
                                 enabled = hasPreviousPage && !isPagingBusy,
                                 modifier = Modifier.weight(1f)
@@ -377,7 +377,7 @@ fun DatabaseScreen(
 
                             Button(
                                 onClick = { viewModel.goToNextPage() },
-                                enabled = canGoNextPage,
+                                enabled = canGoNextPage && !isPagingBusy,
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text(stringResource(R.string.common_next))
